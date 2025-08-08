@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Lesson, Instructor, Student } from '../types';
 import { ROOM_COUNT, ICONS, LUNCH_BREAK_TIME } from '../constants';
+import { addMinutes, floorToQuarter, toMinutes } from '../utils/time';
 import { Card } from './Card';
 
 // Local type for the form data to handle all fields
@@ -11,7 +12,8 @@ interface LessonFormData {
   instructorId: string;
   roomId: number;
   date: string;
-  time: string;
+  time: string; // start time
+  endTime?: string; // end time
   notes?: string;
 }
 
@@ -43,7 +45,18 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
   const [formData, setFormData] = useState<LessonFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const availableTimeSlots = timeSlots.filter(t => t !== LUNCH_BREAK_TIME);
+  // Build 15-min options from first to last slot window
+  const quarterOptions = React.useMemo(() => {
+    const opts: string[] = [];
+    if (timeSlots.length === 0) return opts;
+    let t = timeSlots[0];
+    const end = addMinutes(timeSlots[timeSlots.length - 1], 60);
+    while (toMinutes(t) <= toMinutes(end)) {
+      if (t !== LUNCH_BREAK_TIME) opts.push(t);
+      t = addMinutes(t, 15);
+    }
+    return opts;
+  }, [timeSlots]);
 
   useEffect(() => {
     if (lesson) {
@@ -56,6 +69,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
             roomId: lesson.roomId,
             date: lesson.date,
             time: lesson.time,
+            endTime: lesson.endTime || addMinutes(lesson.time, 60),
             notes: lesson.notes || '',
         });
       } else {
@@ -66,6 +80,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
             roomId: lesson.roomId,
             date: lesson.date,
             time: lesson.time,
+            endTime: lesson.endTime || addMinutes(lesson.time, 60),
             notes: lesson.notes || '',
         });
       }
@@ -84,21 +99,33 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
   };
   
   const isConflict = (updatedLesson: LessonFormData): string | null => {
-    const { id, date, time, instructorId, roomId, studentId } = updatedLesson;
+    const { id, date, time, endTime, instructorId, roomId, studentId } = updatedLesson;
+    const s1 = toMinutes(time);
+    const e1 = toMinutes(endTime || addMinutes(time, 60));
+
+    // lunch overlap
+    const lunchMin = toMinutes(LUNCH_BREAK_TIME);
+  if (s1 < lunchMin && lunchMin < e1) {
+      return `Cannot schedule overlapping the lunch break (${LUNCH_BREAK_TIME}).`;
+    }
 
     for (const l of allLessons) {
-      if (l.id === id || l.status === 'deleted') continue; // Don't check against itself or deleted lessons
-      if (l.date === date && l.time === time) {
+      if (l.id === id || l.status === 'deleted') continue;
+      if (l.date !== date) continue;
+      const s2 = toMinutes(l.time);
+      const e2 = toMinutes(l.endTime || addMinutes(l.time, 60));
+  const overlap = s1 < e2 && s2 < e1; // half-open; allows back-to-back like 08:00-09:00 and 09:00-10:00
+      if (overlap) {
         if (l.instructorId === instructorId) {
           const conflictingInstructor = instructors.find(i => i.id === instructorId);
-          return `Instructor ${conflictingInstructor?.name || ''} is already scheduled at this time.`;
+          return `Instructor ${conflictingInstructor?.name || ''} is already scheduled during this time.`;
         }
         if (l.roomId === roomId) {
-          return `Room ${roomId} is already booked at this time.`;
+          return `Room ${roomId} is already booked during this time.`;
         }
         if (l.studentId === studentId) {
             const conflictingStudent = students.find(s => s.id === studentId);
-            return `Student ${conflictingStudent?.name || ''} already has a lesson at this time.`;
+            return `Student ${conflictingStudent?.name || ''} already has a lesson during this time.`;
         }
       }
     }
@@ -123,13 +150,24 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
       }
     }
 
-    const conflictMessage = isConflict(formData);
+    // normalize to 15-min grid and ensure end > start
+    const normalized = {
+      ...formData,
+      time: floorToQuarter(formData.time),
+      endTime: formData.endTime ? floorToQuarter(formData.endTime) : addMinutes(formData.time, 60),
+    };
+    if (toMinutes(normalized.endTime!) <= toMinutes(normalized.time)) {
+      setError('End time must be after start time.');
+      return;
+    }
+
+    const conflictMessage = isConflict(normalized);
     if(conflictMessage) {
         setError(conflictMessage);
         return;
     }
     
-    onSave(formData);
+    onSave(normalized);
   };
   
   const handleTrash = () => {
@@ -197,9 +235,15 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                   <input type="date" id="date" name="date" value={formData.date} onChange={handleChange} className={inputClasses} />
                 </div>
                 <div>
-                  <label htmlFor="time" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Time</label>
+                  <label htmlFor="time" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Start Time</label>
                   <select id="time" name="time" value={formData.time} onChange={handleChange} className={inputClasses}>
-                    {availableTimeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                    {quarterOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="endTime" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">End Time</label>
+                  <select id="endTime" name="endTime" value={formData.endTime || ''} onChange={handleChange} className={inputClasses}>
+                    {quarterOptions.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>

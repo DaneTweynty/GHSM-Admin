@@ -31,7 +31,8 @@ export interface Lesson {
   instructorId: string;
   roomId: number;
   date: string; // ISO String: 'YYYY-MM-DD'
-  time: string;
+  time: string; // start time HH:MM
+  endTime?: string; // optional end time HH:MM for flexible durations
   notes?: string;
   status: 'scheduled' | 'deleted';
 }

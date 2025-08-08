@@ -1,0 +1,8 @@
+import React from 'react';
+import { BillingList } from '../components/BillingList';
+import { useApp } from '../context/AppContext';
+
+export const BillingPage: React.FC = () => {
+  const { students, billings, handleMarkAsPaid } = useApp();
+  return <BillingList students={students} billings={billings} onMarkAsPaid={handleMarkAsPaid} />;
+};
