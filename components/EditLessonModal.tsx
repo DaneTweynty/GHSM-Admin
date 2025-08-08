@@ -15,6 +15,8 @@ interface LessonFormData {
   time: string; // start time
   endTime?: string; // end time
   notes?: string;
+  repeatWeekly?: boolean;
+  repeatWeeks?: number; // number of additional weeks to repeat
 }
 
 interface EditLessonModalProps {
@@ -71,6 +73,8 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
             time: lesson.time,
             endTime: lesson.endTime || addMinutes(lesson.time, 60),
             notes: lesson.notes || '',
+            repeatWeekly: false,
+            repeatWeeks: 11, // default to 11 more weeks (total 12)
         });
       } else {
         setFormData({
@@ -82,6 +86,8 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
             time: lesson.time,
             endTime: lesson.endTime || addMinutes(lesson.time, 60),
             notes: lesson.notes || '',
+            repeatWeekly: false,
+            repeatWeeks: 11,
         });
       }
     } else {
@@ -167,7 +173,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
         return;
     }
     
-    onSave(normalized);
+  onSave(normalized);
   };
   
   const handleTrash = () => {
@@ -262,6 +268,39 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                   className={inputClasses}
                   placeholder="Add any specific notes for this lesson..."
                 />
+              </div>
+
+              {/* Repeat weekly options (add/edit) */}
+              <div className="mt-4 space-y-2">
+                <label className="inline-flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="repeatWeekly"
+                    checked={!!formData.repeatWeekly}
+                    onChange={(e) => setFormData(prev => prev ? { ...prev, repeatWeekly: e.target.checked } : prev)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-text-secondary dark:text-slate-400">Repeat weekly</span>
+                </label>
+                {formData.repeatWeekly && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="repeatWeeks" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Number of additional weeks</label>
+                      <input
+                        id="repeatWeeks"
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={formData.repeatWeeks || 1}
+                        onChange={(e) => setFormData(prev => prev ? { ...prev, repeatWeeks: Math.max(1, Math.min(52, parseInt(e.target.value || '1'))) } : prev)}
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div className="text-xs text-text-secondary dark:text-slate-400 self-end">
+                      Enabling this will also schedule this lesson every week on the same weekday and time for the next {formData.repeatWeeks || 1} week(s).
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="bg-surface-header dark:bg-slate-700/50 p-4 flex justify-between items-center rounded-b-lg border-t border-surface-border dark:border-slate-700">

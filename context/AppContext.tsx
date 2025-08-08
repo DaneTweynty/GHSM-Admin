@@ -61,7 +61,7 @@ export type AppState = {
   isEditModalOpen: boolean;
   editingLesson: Lesson | null;
   isAddMode: boolean;
-  handleUpdateLesson: (lessonData: Omit<Lesson, 'status'>) => void;
+  handleUpdateLesson: (lessonData: Omit<Lesson, 'status'> & { repeatWeekly?: boolean; repeatWeeks?: number }) => void;
   handleMoveLessonToTrash: (lessonId: string) => void;
   handleUpdateLessonPosition: (lessonId: string, newDate: Date, newTime: string | undefined, isCopy: boolean) => void;
   handleLessonDragStart: (e: React.DragEvent, lesson: Lesson) => void;
@@ -334,26 +334,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     handleCloseEditModal();
   }, [handleCloseEditModal]);
 
-  const handleUpdateLesson = useCallback((lessonData: Omit<Lesson, 'status'>) => {
-    if (isAddMode) {
-      const student = students.find(s => s.id === lessonData.studentId);
-      if (student && student.status === 'inactive') {
-        alert('This student is not currently enrolled. Please activate the student to schedule new lessons.');
-        return;
-      }
-  const newLesson: Lesson = { ...lessonData, status: 'scheduled' };
-      setLessons(prevLessons => [...prevLessons, newLesson]);
-    } else {
-      const updatedLesson: Lesson = { ...lessonData, status: 'scheduled' };
-      setLessons(prevLessons => prevLessons.map(l => (l.id === updatedLesson.id ? updatedLesson : l)));
-      const originalLesson = lessons.find(l => l.id === updatedLesson.id);
-      if (originalLesson && originalLesson.instructorId !== updatedLesson.instructorId) {
-        setStudents(prevStudents => prevStudents.map(s => (s.id === updatedLesson.studentId ? { ...s, instructorId: updatedLesson.instructorId } : s)));
-      }
-    }
-    handleCloseEditModal();
-  }, [lessons, isAddMode, handleCloseEditModal, students]);
-
   const checkConflict = useCallback((lessonToPlace: Omit<Lesson, 'id'>, ignoreLessonId?: string): string | null => {
     for (const l of lessons) {
       if (l.id === ignoreLessonId || l.status === 'deleted') continue;
@@ -377,6 +357,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return null;
   }, [lessons, instructors, students]);
+
+  const handleUpdateLesson = useCallback((lessonData: Omit<Lesson, 'status'> & { repeatWeekly?: boolean; repeatWeeks?: number }) => {
+    if (isAddMode) {
+      const { repeatWeekly, repeatWeeks, ...baseData } = lessonData;
+      const student = students.find(s => s.id === baseData.studentId);
+      if (student && student.status === 'inactive') {
+        alert('This student is not currently enrolled. Please activate the student to schedule new lessons.');
+        return;
+      }
+      const newLesson: Lesson = { ...baseData, status: 'scheduled' };
+      // Prepare list of lessons to add, including weekly repeats if requested
+      const lessonsToAdd: Lesson[] = [newLesson];
+      const doRepeat = !!repeatWeekly && (repeatWeeks ?? 0) > 0;
+      if (doRepeat) {
+        const weeks = Math.min(52, Math.max(1, repeatWeeks || 1));
+        const startDate = new Date(`${baseData.date}T00:00:00`);
+        const baseDuration = (toMinutes(baseData.endTime || addMinutes(baseData.time, 60)) - toMinutes(baseData.time));
+        for (let i = 1; i <= weeks; i++) {
+          const d = new Date(startDate);
+          d.setDate(d.getDate() + i * 7);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${day}`;
+          const repeatLesson: Lesson = {
+            ...newLesson,
+            id: `lesson-${Date.now()}-${i}`,
+            date: dateStr,
+            // keep same start/end (times), only date shifts
+            time: baseData.time,
+            endTime: addMinutes(baseData.time, baseDuration),
+          };
+          // lunch guard
+          const lunchMin = toMinutes(LUNCH_BREAK_TIME);
+          const sMin = toMinutes(repeatLesson.time);
+          const eMin = toMinutes(repeatLesson.endTime || addMinutes(repeatLesson.time, 60));
+          if (sMin < lunchMin && lunchMin < eMin) continue; // skip this occurrence silently
+          // conflict check against existing and queued ones
+          const { id: _omit, ...repeatForCheck } = repeatLesson as any;
+          const conflict = checkConflict(repeatForCheck, undefined);
+          if (!conflict) lessonsToAdd.push(repeatLesson);
+        }
+      }
+      setLessons(prevLessons => [...prevLessons, ...lessonsToAdd]);
+    } else {
+      const { repeatWeekly, repeatWeeks, ...baseData } = lessonData;
+      const updatedLesson: Lesson = { ...baseData, status: 'scheduled' };
+      setLessons(prevLessons => prevLessons.map(l => (l.id === updatedLesson.id ? updatedLesson : l)));
+      const originalLesson = lessons.find(l => l.id === updatedLesson.id);
+      if (originalLesson && originalLesson.instructorId !== updatedLesson.instructorId) {
+        setStudents(prevStudents => prevStudents.map(s => (s.id === updatedLesson.studentId ? { ...s, instructorId: updatedLesson.instructorId } : s)));
+      }
+
+      // If requested, also create future weekly occurrences from this edited lesson's date
+      if (repeatWeekly && (repeatWeeks ?? 0) > 0) {
+        const weeks = Math.min(52, Math.max(1, repeatWeeks || 1));
+        const startDate = new Date(`${updatedLesson.date}T00:00:00`);
+        const baseDuration = (toMinutes(updatedLesson.endTime || addMinutes(updatedLesson.time, 60)) - toMinutes(updatedLesson.time));
+        const newOccurrences: Lesson[] = [];
+        for (let i = 1; i <= weeks; i++) {
+          const d = new Date(startDate);
+          d.setDate(d.getDate() + i * 7);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${day}`;
+          const repeatLesson: Lesson = {
+            ...updatedLesson,
+            id: `lesson-${Date.now()}-e${i}`,
+            date: dateStr,
+            time: updatedLesson.time,
+            endTime: addMinutes(updatedLesson.time, baseDuration),
+          };
+          const lunchMin = toMinutes(LUNCH_BREAK_TIME);
+          const sMin = toMinutes(repeatLesson.time);
+          const eMin = toMinutes(repeatLesson.endTime || addMinutes(repeatLesson.time, 60));
+          if (sMin < lunchMin && lunchMin < eMin) continue;
+          const { id: _omit, ...repeatForCheck } = repeatLesson as any;
+          const conflict = checkConflict(repeatForCheck, undefined);
+          if (!conflict) newOccurrences.push(repeatLesson);
+        }
+        if (newOccurrences.length) setLessons(prev => [...prev, ...newOccurrences]);
+      }
+    }
+    handleCloseEditModal();
+  }, [lessons, isAddMode, handleCloseEditModal, students, checkConflict]);
 
   const handleUpdateLessonPosition = useCallback((lessonId: string, newDate: Date, newTime: string | undefined, isCopy: boolean) => {
     const originalLesson = lessons.find(l => l.id === lessonId);
