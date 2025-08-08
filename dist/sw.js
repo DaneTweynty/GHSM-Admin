@@ -1,51 +1,15 @@
 
-const CACHE_NAME = 'grey-harmonics-cache-v8';
+const CACHE_NAME = 'grey-harmonics-cache-v9';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/index.tsx',
-  '/App.tsx',
-  '/types.ts',
-  '/constants.tsx',
+  // Built assets will be hashed and served by Vite; don't pre-cache TS/TSX source files
   '/metadata.json',
   '/initial-data.json',
-  '/components/AnnualView.tsx',
-  '/components/BillingList.tsx',
-  '/components/Card.tsx',
-  '/components/Dashboard.tsx',
-  '/components/DayView.tsx',
-  '/components/EditInstructorModal.tsx',
-  '/components/EditLessonModal.tsx',
-  '/components/EditSessionModal.tsx',
-  '/components/EnrollmentPage.tsx',
-  '/components/Header.tsx',
-  '/components/LoadingSpinner.tsx',
-  '/components/MonthView.tsx',
-  '/components/StudentDetailView.tsx',
-  '/components/StudentsList.tsx',
-  '/components/TeacherDetailView.tsx',
-  '/components/TeachersList.tsx',
-  '/components/WeekView.tsx',
-  '/components/TrashPage.tsx',
-  '/components/TrashZone.tsx',
-  '/components/AdminAuthModal.tsx',
-  '/services/scheduleService.ts',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  // CDN URLs
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/@babel/standalone@7.24.9/babel.min.js',
-  'https://esm.sh/react@^18.2.0',
-  'https://esm.sh/react-dom@^18.2.0/client',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=AlexChen',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=BrendaSmith',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=ChloeKim',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=DavidRodriguez',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=EleanorVance',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=MarcoDiaz',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=SamiraAlJamil',
-  'https://api.dicebear.com/8.x/pixel-art/svg?seed=KenjiTanaka'
+  // Optional external assets to cache can be added here
 ];
 
 self.addEventListener('install', (event) => {
@@ -89,6 +53,12 @@ self.addEventListener('fetch', (event) => {
             // Can only cache basic and cors requests
             if (response.type !== 'basic' && response.type !== 'cors') {
                return response;
+            }
+
+            // Only cache http(s) requests
+            const url = new URL(event.request.url);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+              return response;
             }
 
             const responseToCache = response.clone();

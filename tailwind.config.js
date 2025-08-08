@@ -1,0 +1,46 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'class',
+  content: [
+    './index.html',
+    './{App,types,constants}.tsx',
+    './{index,vite}.ts*',
+    './components/**/*.{ts,tsx}',
+    './pages/**/*.{ts,tsx}',
+    './context/**/*.{ts,tsx}',
+    './services/**/*.{ts,tsx}',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Nunito Sans', 'sans-serif'],
+      },
+      colors: {
+        'brand-primary': '#AEC6FF',
+        'brand-secondary': '#C3B1E1',
+        'brand-secondary-dark': '#8A6BBE',
+        'brand-secondary-deep-dark': '#583C87',
+        'surface-main': '#FCFBF9',
+        'surface-card': '#FFFFFF',
+        'surface-header': '#F8F8F8',
+        'surface-table-header': '#F8F8F8',
+        'surface-input': '#F5F5F5',
+        'surface-hover': '#F0F4FF',
+        'surface-border': '#DDE1E6',
+        'text-primary': '#3D405B',
+        'text-secondary': '#8D99AE',
+        'text-tertiary': '#BCCCDC',
+        'text-on-color': '#3D405B',
+        'status-green': '#57C488',
+        'status-yellow': '#FFCA58',
+        'status-red': '#FF8080',
+        'brand-primary-light': '#EAF0FF',
+        'brand-secondary-light': '#F1EDF6',
+        'status-green-light': '#E4F6EB',
+        'status-yellow-light': '#FFF5DB',
+        'status-red-light': '#FFE5E5',
+      },
+    },
+  },
+  plugins: [],
+};
