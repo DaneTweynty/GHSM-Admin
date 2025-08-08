@@ -127,11 +127,11 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   return (
                       <div key={lesson.id} className="relative group">
                           <button
-                              onDoubleClick={() => onEditLesson(lesson)}
+                              onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
                               style={{ backgroundColor: instructor?.color }}
                               className={`w-full text-left p-1 md:p-1.5 rounded-md text-text-on-color dark:text-slate-800 text-[10px] md:text-[11px] leading-tight transition-all hover:opacity-80 dark:hover:opacity-90 active:cursor-grabbing cursor-grab`}
-                              title={`Double-click to edit. ${hasNote ? `\nNote: ${lesson.notes}` : ''}`}
-                              aria-label={`Lesson for ${student?.name} at ${lesson.time}. Double click to edit.${hasNote ? ' This lesson has a note.' : ''}`}
+                              title={`Lesson: ${student?.name} at ${lesson.time}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
+                              aria-label={`Lesson for ${student?.name} at ${lesson.time}${hasNote ? '. This lesson has a note.' : ''}. Double click to edit.`}
                               draggable="true"
                               onDragStart={(e) => onLessonDragStart(e, lesson)}
                           >

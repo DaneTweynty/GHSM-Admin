@@ -2,6 +2,7 @@
 
 import type { Student, Instructor, Lesson } from '../types';
 import { DAYS_OF_WEEK, DAYS_OF_WEEK_FULL, TIME_SLOTS, ROOM_COUNT, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
+import { addMinutes } from '../utils/time';
 
 // Fisher-Yates shuffle algorithm
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -67,6 +68,7 @@ export const generateSchedules = (
                 roomId,
                 date: dateString,
                 time: slot.time,
+                endTime: addMinutes(slot.time, 60),
                 notes: '',
                 status: 'scheduled',
               });
