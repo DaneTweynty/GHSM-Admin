@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#AEC6FF">
+    <title>Grey Harmonics School of Music</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+
+      // On page load, apply font size from localStorage to avoid FOUC
+      const size = localStorage.getItem('fontSize') || 'base';
+      if (size === 'sm') {
+        document.documentElement.style.fontSize = '87.5%';
+      } else if (size === 'lg') {
+        document.documentElement.style.fontSize = '112.5%';
+      } else {
+        document.documentElement.style.fontSize = '100%';
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Nunito Sans', 'sans-serif'],
+            },
+            colors: {
+              // Pastel Brand Colors
+              'brand-primary': '#AEC6FF', // Soft Blue
+              'brand-secondary': '#C3B1E1', // Soft Purple
+              'brand-secondary-dark': '#8A6BBE', // Darker Purple
+              'brand-secondary-deep-dark': '#583C87', // Even Darker Purple
+
+              // Pastel Surface Colors
+              'surface-main': '#FCFBF9', // Off-white
+              'surface-card': '#FFFFFF',
+              'surface-header': '#F8F8F8',
+              'surface-table-header': '#F8F8F8',
+              'surface-input': '#F5F5F5',
+              'surface-hover': '#F0F4FF', // Light blue tint
+              'surface-border': '#DDE1E6', // More visible border
+
+              // Softer Text Colors
+              'text-primary': '#3D405B', // Dark Slate Blue/Gray
+              'text-secondary': '#8D99AE', // Medium Gray
+              'text-tertiary': '#BCCCDC', // Light Gray
+              'text-on-color': '#3D405B', // Dark text for high contrast on pastel backgrounds
+
+              // Pastel Semantic & Status Colors
+              'status-green': '#57C488',
+              'status-yellow': '#FFCA58',
+              'status-red': '#FF8080',
+              
+              // Light background variants for pills/badges
+              'brand-primary-light': '#EAF0FF',
+              'brand-secondary-light': '#F1EDF6',
+              'status-green-light': '#E4F6EB',
+              'status-yellow-light': '#FFF5DB',
+              'status-red-light': '#FFE5E5',
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone@7.24.9/babel.min.js"></script>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.2.0",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@^18.2.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-surface-main dark:bg-slate-900">
+    <div id="root"></div>
+    <script type="text/babel" data-type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
