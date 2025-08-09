@@ -5,6 +5,7 @@ export interface Student {
   instrument: string;
   sessionsAttended: number;
   sessionsBilled: number;
+  creditBalance?: number; // positive PHP balance carried forward
   instructorId?: string;
   age?: number;
   email?: string;
@@ -49,6 +50,20 @@ export interface BillingItem {
   unitAmount: number; // price per unit
 }
 
+export type PaymentMethod = 'Cash' | 'BDO' | 'GCash' | 'Other' | 'Credit';
+
+export interface Payment {
+  id: string;
+  billingId: string;
+  studentId: string;
+  amount: number;
+  method: PaymentMethod;
+  reference?: string; // OR number / transaction no.
+  note?: string;
+  overpayHandling?: 'next' | 'hold';
+  date: string; // ISO
+}
+
 export interface Billing {
   id:string;
   studentId: string;
@@ -59,7 +74,13 @@ export interface Billing {
   dateIssued: string;
   // Optional line items for invoice breakdown
   items?: BillingItem[];
+  // Payments made towards this invoice
+  payments?: Payment[];
+  // Convenience cached sum of payments (derived but stored for listing ease)
+  paidAmount?: number;
 }
 
 export type View = 'dashboard' | 'students' | 'billing' | 'enrollment' | 'teachers' | 'trash';
 export type CalendarView = 'year' | 'month' | 'week' | 'day';
+
+declare module './types' {}

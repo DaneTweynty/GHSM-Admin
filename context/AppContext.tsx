@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
-import type { Student, Instructor, Lesson, Billing, View, CalendarView } from '../types';
+import type { Student, Instructor, Lesson, Billing, View, CalendarView, Payment, PaymentMethod } from '../types';
 import { BILLING_CYCLE, LESSON_PRICE, EVENT_COLORS, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, floorToQuarter, roundToQuarter, rangesOverlap, toMinutes } from '../utils/time';
 import { generateSchedules } from '../services/scheduleService';
@@ -41,6 +41,7 @@ export type AppState = {
   instructors: Instructor[];
   lessons: Lesson[];
   billings: Billing[];
+  // Optional record of credits per student
 
   currentDate: Date;
   setCurrentDate: React.Dispatch<React.SetStateAction<Date>>;
@@ -75,7 +76,7 @@ export type AppState = {
   handleLessonDragEnd: () => void;
 
   handleMarkAttendance: (studentId: string) => void;
-  handleMarkAsPaid: (billingId: string) => void;
+  handleRecordPayment: (billingId: string, payment: { amount: number; method: PaymentMethod; reference?: string; note?: string; overpayHandling?: 'next' | 'hold' }) => void;
   handleToggleStudentStatus: (studentId: string) => void;
 
   isEditSessionModalOpen: boolean;
@@ -305,16 +306,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
-  const handleMarkAsPaid = useCallback((billingId: string) => {
-    setBillings(prevBillings => {
-      const newBillings = prevBillings.map(b => (b.id === billingId ? { ...b, status: 'paid' as const } : b));
-      const updatedBilling = newBillings.find(b => b.id === billingId);
-      if (!updatedBilling) return prevBillings;
-      const studentId = updatedBilling.studentId;
-      const paidBillsForStudent = newBillings.filter(b => b.studentId === studentId && b.status === 'paid');
-      const totalSessionsBilled = paidBillsForStudent.length * BILLING_CYCLE;
-      setStudents(prevStudents => prevStudents.map(s => (s.id === studentId ? { ...s, sessionsBilled: totalSessionsBilled } : s)));
-      return newBillings;
+  const handleRecordPayment = useCallback((billingId: string, payment: { amount: number; method: PaymentMethod; reference?: string; note?: string; overpayHandling?: 'next' | 'hold' }) => {
+    // If the payment method is Credit, ensure we don't exceed available credit; enforce later with UI as well.
+    setBillings(prev => {
+      const next = prev.map(b => {
+        if (b.id !== billingId) return b;
+        const p: Payment = {
+          id: `pay-${Date.now()}`,
+          billingId: b.id,
+          studentId: b.studentId,
+          amount: Number(payment.amount) || 0,
+          method: payment.method,
+          reference: payment.reference,
+          note: payment.note,
+          overpayHandling: payment.overpayHandling,
+          date: new Date().toISOString(),
+        };
+        const payments = [...(b.payments || []), p];
+        const paidAmount = payments.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+        const status = paidAmount >= b.amount ? 'paid' as const : 'unpaid';
+        return { ...b, payments, paidAmount, status };
+      });
+
+      const updated = next.find(b => b.id === billingId);
+      if (updated) {
+        const studentId = updated.studentId;
+        const overpay = (updated.paidAmount || 0) - updated.amount;
+        const overHandling = payment.overpayHandling ?? 'next';
+        // Compute sessions billed from updated billings
+        const paidBillsForStudent = next.filter(b => b.studentId === studentId && b.status === 'paid');
+        const totalSessionsBilled = paidBillsForStudent.length * BILLING_CYCLE;
+
+        // Single student update to avoid batched overwrite
+        setStudents(prev => prev.map(s => {
+          if (s.id !== studentId) return s;
+          let credit = s.creditBalance || 0;
+          // Deduct only credit applied up to available credit
+          if (payment.method === 'Credit') {
+            const applied = Math.max(0, Math.min(credit, Number(payment.amount) || 0));
+            credit = Math.max(0, credit - applied);
+          }
+          if (overpay > 0 && overHandling === 'next') {
+            credit = credit + overpay;
+          }
+          return { ...s, creditBalance: credit, sessionsBilled: totalSessionsBilled };
+        }));
+      }
+      return next;
     });
   }, []);
 
@@ -726,7 +764,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isEditModalOpen, editingLesson, isAddMode,
     handleUpdateLesson, handleMoveLessonToTrash, handleUpdateLessonPosition,
     handleLessonDragStart, handleLessonDragEnd,
-    handleMarkAttendance, handleMarkAsPaid,
+  handleMarkAttendance, handleRecordPayment,
   handleToggleStudentStatus,
     isEditSessionModalOpen, editingStudent, handleOpenEditSessionModal, handleCloseEditSessionModal, handleUpdateStudentSessions,
     isEditInstructorModalOpen, editingInstructor, isAddInstructorMode, handleOpenEditInstructorModal, handleOpenAddInstructorModal, handleCloseEditInstructorModal, handleSaveInstructor,

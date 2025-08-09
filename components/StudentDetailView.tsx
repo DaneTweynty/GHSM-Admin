@@ -124,7 +124,7 @@ const DetailItem: React.FC<{ label: string; value?: string | number; copiable?: 
 
 export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, lessons, billings, instructors }) => {
   const { handleMarkAttendance, handleUpdateStudentContact } = useApp();
-  const instructorMap = new Map(instructors.map(i => [i.id, i]));
+  const instructorMap = useMemo(() => new Map<string, Instructor>(instructors.map(i => [i.id, i] as [string, Instructor])), [instructors]);
 
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [isEditingGuardian, setIsEditingGuardian] = useState(false);
@@ -198,6 +198,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
   };
 
   const lastAttendanceLabel = student.lastAttendanceMarkedAt ? new Date(student.lastAttendanceMarkedAt).toLocaleString() : 'N/A';
+  const formatPHP = (amount: number) => `PHP ${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="bg-surface-header dark:bg-slate-900/50 p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
@@ -215,6 +216,17 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         </h3>
         <p className="text-sm text-text-secondary dark:text-slate-400 mb-1">ID: {student.studentIdNumber}</p>
         <p className="text-sm text-text-secondary dark:text-slate-400 mb-2">{student.instrument}</p>
+        {student.creditBalance && student.creditBalance > 0 && (
+          <div className="mb-3">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-status-green-light dark:bg-status-green/20 text-status-green">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 1v22"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              Credit: {formatPHP(student.creditBalance)}
+            </span>
+          </div>
+        )}
         <div className="text-xs text-text-tertiary dark:text-slate-400 mb-4">Last attendance: {lastAttendanceLabel}</div>
         <div className="space-y-2.5 text-sm text-left w-full border-t border-surface-border dark:border-slate-700 pt-4">
             <div className="flex items-center justify-between mb-1">
@@ -480,7 +492,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                 {pagedBills.map(bill => (
                   <tr key={bill.id} className="border-b border-surface-border dark:border-slate-700 last:border-b-0">
                     <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{new Date(bill.dateIssued).toLocaleDateString()}</td>
-                    <td className="py-2 text-sm text-text-secondary dark:text-slate-400">${bill.amount.toFixed(2)}</td>
+                    <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{formatPHP(bill.amount)}</td>
                     <td className="py-2 text-sm">
                        <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
                           bill.status === 'paid' ? 'bg-status-green-light dark:bg-status-green/20 text-status-green' : 'bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow'
