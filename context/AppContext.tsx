@@ -12,7 +12,14 @@ export type StudentEnrollmentData = {
   email: string;
   contactNumber: string;
   gender: 'Male' | 'Female';
+  // Student facebook (optional)
+  facebook?: string;
   guardianName?: string;
+  // Additional guardian details
+  guardianFullName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  guardianFacebook?: string;
 };
 
 export type AdminAction = 
@@ -96,6 +103,20 @@ export type AppState = {
   handleRequestEnrollment: (studentData: StudentEnrollmentData) => void;
   handleRequestResetData: () => void;
   handleRestoreLesson: (lessonId: string) => void;
+
+  // Add: update billing/invoice (line items and totals)
+  handleUpdateBilling: (billingId: string, updates: Partial<Billing> & { items?: import('../types').BillingItem[] }) => void;
+
+  // Add: update student contact/guardian details
+  handleUpdateStudentContact: (studentId: string, updates: {
+    email?: string;
+    contactNumber?: string;
+    facebook?: string;
+    guardianFullName?: string;
+    guardianPhone?: string;
+    guardianEmail?: string;
+    guardianFacebook?: string;
+  }) => void;
 
   enrollmentSuccessMessage: string | null;
   installPromptEvent: (Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) | null;
@@ -295,6 +316,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setStudents(prevStudents => prevStudents.map(s => (s.id === studentId ? { ...s, sessionsBilled: totalSessionsBilled } : s)));
       return newBillings;
     });
+  }, []);
+
+  // Add: update a billing (e.g., edit line items and recalc amount)
+  const handleUpdateBilling = useCallback((billingId: string, updates: Partial<Billing> & { items?: import('../types').BillingItem[] }) => {
+    setBillings(prev => prev.map(b => {
+      if (b.id !== billingId) return b;
+      const next = { ...b, ...updates } as Billing;
+      if (updates.items) {
+        const total = updates.items.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitAmount) || 0), 0);
+        next.items = updates.items;
+        next.amount = total;
+      }
+      return next;
+    }));
   }, []);
 
   const activeInstructors = useMemo(() => instructors.filter(i => i.status === 'active'), [instructors]);
@@ -501,8 +536,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       age: studentData.age,
       email: studentData.email,
       contactNumber: studentData.contactNumber,
+      // persist student's facebook if provided
+      facebook: studentData.facebook,
       gender: studentData.gender,
       guardianName: studentData.guardianName,
+      // Persist guardian details if provided
+      guardianFullName: studentData.guardianFullName,
+      guardianPhone: studentData.guardianPhone,
+      guardianEmail: studentData.guardianEmail,
+      guardianFacebook: studentData.guardianFacebook,
       status: 'active',
       profilePictureUrl: undefined,
     };
@@ -527,6 +569,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, sessionsAttended: student.sessionsBilled + unpaidCount } : student)));
     handleCloseEditSessionModal();
   }, [handleCloseEditSessionModal]);
+
+  // Add: handler to update student's contact/guardian details
+  const handleUpdateStudentContact = useCallback((studentId: string, updates: {
+    email?: string;
+    contactNumber?: string;
+    facebook?: string;
+    guardianFullName?: string;
+    guardianPhone?: string;
+    guardianEmail?: string;
+    guardianFacebook?: string;
+  }) => {
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
+  }, []);
 
   const handleOpenEditInstructorModal = useCallback((instructor: Instructor) => {
     setEditingInstructor(instructor);
@@ -677,6 +732,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isEditInstructorModalOpen, editingInstructor, isAddInstructorMode, handleOpenEditInstructorModal, handleOpenAddInstructorModal, handleCloseEditInstructorModal, handleSaveInstructor,
   isAdminAuthModalOpen, adminActionToConfirm, getAdminActionDescription, handleRequestAdminAction, handleAdminAuthSuccess, handleCloseAdminAuthModal,
   handleToggleInstructorStatus, handleRequestEnrollment, handleRequestResetData, handleRestoreLesson,
+  // expose new handler
+  handleUpdateBilling,
+  handleUpdateStudentContact,
   enrollmentSuccessMessage, installPromptEvent, handleInstallRequest,
   isDragging, handleDropOnTrash,
     timeSlots,

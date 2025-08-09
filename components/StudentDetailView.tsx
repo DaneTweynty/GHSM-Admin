@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Student, Lesson, Billing, Instructor } from '../types';
 import { Card } from './Card';
+import { useApp } from '../context/AppContext';
 
 interface StudentDetailViewProps {
   student: Student;
@@ -32,74 +33,441 @@ const Avatar: React.FC<{ student: Student, size: 'sm' | 'lg' }> = ({ student, si
     );
 };
 
+// Helpers
+const isUrlish = (v?: string) => !!v && /^(https?:\/\/)/i.test(v.trim());
+const toLikelyUrl = (v?: string) => {
+  if (!v) return undefined;
+  const s = v.trim();
+  if (/^(https?:\/\/)/i.test(s)) return s;
+  if (/^www\./i.test(s)) return `https://${s}`;
+  if (/^(facebook\.com\/|m\.facebook\.com\/|fb\.com\/)/i.test(s)) return `https://${s}`;
+  return undefined;
+};
+const normalizePhone = (v?: string) => (v || '').replace(/[^\d]/g, '');
+const formatPhone = (v?: string) => {
+  const d = normalizePhone(v);
+  if (d.length === 11 && d.startsWith('1')) {
+    const core = d.slice(1);
+    return `+1 (${core.slice(0,3)}) ${core.slice(3,6)}-${core.slice(6,10)}`;
+  }
+  if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6,10)}`;
+  if (!d) return '';
+  return v || d; // fallback show original
+};
+const isValidPhone = (v?: string) => {
+  const d = normalizePhone(v);
+  return d.length === 10 || (d.length === 11 && d.startsWith('1'));
+};
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-const DetailItem: React.FC<{ label: string; value?: string | number }> = ({ label, value }) => {
-    if (!value && value !== 0) return null;
+const CopyIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+);
+const ExternalIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 3h3v3"></path>
+    <path d="M10 14L21 3"></path>
+    <path d="M21 10v11H3V3h11"></path>
+  </svg>
+);
+const CheckIcon = () => (
+  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const DetailItem: React.FC<{ label: string; value?: string | number; copiable?: boolean; makeUrlIfHttp?: boolean }>
+  = ({ label, value, copiable, makeUrlIfHttp }) => {
+    if ((!value && value !== 0)) return null;
+    const str = String(value ?? '');
+    const url = makeUrlIfHttp ? (isUrlish(str) ? str : toLikelyUrl(str)) : undefined;
+    const copyValue = copiable ? str : undefined;
+    const handleCopy = async () => {
+      if (!copyValue) return;
+      await copyToClipboard(copyValue);
+    };
     return (
-        <div>
-            <span className="font-semibold text-text-primary dark:text-slate-200">{label}:</span>
-            <span className="ml-2 text-text-secondary dark:text-slate-400 break-words">{value}</span>
+        <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="font-semibold text-text-primary dark:text-slate-200">{label}:</span>
+              {url ? (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="ml-2 text-brand-primary hover:underline break-words inline-block align-middle">
+                  {str}
+                </a>
+              ) : (
+                <span className="ml-2 text-text-secondary dark:text-slate-400 break-words align-middle inline-block">{label.toLowerCase().includes('phone') ? formatPhone(str) : str}</span>
+              )}
+            </div>
+            {copyValue && (
+              <button
+                type="button"
+                onClick={handleCopy}
+                title="Copy"
+                className="shrink-0 p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 text-text-tertiary dark:text-slate-400"
+              >
+                <CopyIcon />
+              </button>
+            )}
         </div>
     );
 };
 
-
 export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, lessons, billings, instructors }) => {
+  const { handleMarkAttendance, handleUpdateStudentContact } = useApp();
   const instructorMap = new Map(instructors.map(i => [i.id, i]));
 
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [isEditingGuardian, setIsEditingGuardian] = useState(false);
+  const [contactEmail, setContactEmail] = useState(student.email || '');
+  const [contactPhone, setContactPhone] = useState(student.contactNumber || '');
+  const [contactFacebook, setContactFacebook] = useState(student.facebook || '');
+  const [gName, setGName] = useState(student.guardianFullName || student.guardianName || '');
+  const [gPhone, setGPhone] = useState(student.guardianPhone || '');
+  const [gEmail, setGEmail] = useState(student.guardianEmail || '');
+  const [gFacebook, setGFacebook] = useState(student.guardianFacebook || '');
+  const [errors, setErrors] = useState<{ contactPhone?: string; gPhone?: string }>({});
+
+  const isMinor = (student.age ?? 0) > 0 && (student.age as number) < 18;
+  const wasAttendedRecently = useMemo(() => {
+    if (!student.lastAttendanceMarkedAt) return false;
+    const now = Date.now();
+    return now - student.lastAttendanceMarkedAt < 24 * 60 * 60 * 1000;
+  }, [student.lastAttendanceMarkedAt]);
+
+  // Lessons filtering and pagination
+  const [lessonFilter, setLessonFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [lessonPage, setLessonPage] = useState(1);
+  const lessonsPerPage = 7; // show at least 7 cards
+  const filteredLessons = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.toDateString());
+    const parse = (d: string) => new Date(d.replace(/-/g, '/')).getTime();
+    return lessons
+      .filter(l => {
+        if (lessonFilter === 'all') return true;
+        const t = parse(l.date);
+        return lessonFilter === 'upcoming' ? t >= today.getTime() : t < today.getTime();
+      })
+      .sort((a, b) => parse(b.date) - parse(a.date)); // DESC
+  }, [lessons, lessonFilter]);
+  const totalLessonPages = Math.max(1, Math.ceil(filteredLessons.length / lessonsPerPage));
+  const pagedLessons = filteredLessons.slice((lessonPage - 1) * lessonsPerPage, lessonPage * lessonsPerPage);
+
+  // Billing pagination
+  const [billingPage, setBillingPage] = useState(1);
+  const billsPerPage = 5;
+  const sortedBills = useMemo(() => billings.slice().sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime()), [billings]);
+  const totalBillingPages = Math.max(1, Math.ceil(sortedBills.length / billsPerPage));
+  const pagedBills = sortedBills.slice((billingPage - 1) * billsPerPage, billingPage * billsPerPage);
+
+  const handleSaveContact = () => {
+    const nextErrors: typeof errors = {};
+    if (contactPhone && !isValidPhone(contactPhone)) nextErrors.contactPhone = 'Enter a valid 10-digit phone (or 1+10).';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    handleUpdateStudentContact(student.id, {
+      email: contactEmail.trim() || undefined,
+      contactNumber: normalizePhone(contactPhone) || undefined,
+      facebook: contactFacebook.trim() || undefined,
+    });
+    setIsEditingContact(false);
+  };
+
+  const handleSaveGuardian = () => {
+    const nextErrors: typeof errors = {};
+    if (gPhone && !isValidPhone(gPhone)) nextErrors.gPhone = 'Enter a valid 10-digit phone (or 1+10).';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    handleUpdateStudentContact(student.id, {
+      guardianFullName: gName.trim() || undefined,
+      guardianPhone: normalizePhone(gPhone) || undefined,
+      guardianEmail: gEmail.trim() || undefined,
+      guardianFacebook: gFacebook.trim() || undefined,
+    });
+    setIsEditingGuardian(false);
+  };
+
+  const lastAttendanceLabel = student.lastAttendanceMarkedAt ? new Date(student.lastAttendanceMarkedAt).toLocaleString() : 'N/A';
+
   return (
-    <div className="bg-surface-header dark:bg-slate-900/50 p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card className="p-4 md:col-span-2 lg:col-span-1 flex flex-col items-center text-center">
-        <div className="-mt-12 mb-3">
+    <div className="bg-surface-header dark:bg-slate-900/50 p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+      <Card className="p-4 md:col-span-2 lg:col-span-1 flex flex-col items-center text-center h-full">
+        <div className="mt-2 mb-3">
             <Avatar student={student} size="lg" />
         </div>
-        <h3 className="text-lg font-bold text-text-primary dark:text-slate-100">{student.name}</h3>
+        <h3 className="text-lg font-bold text-text-primary dark:text-slate-100 flex items-center gap-2">
+          {student.name}
+          {isMinor ? (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow">Minor</span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-status-green-light dark:bg-status-green/20 text-status-green">Adult</span>
+          )}
+        </h3>
         <p className="text-sm text-text-secondary dark:text-slate-400 mb-1">ID: {student.studentIdNumber}</p>
-        <p className="text-sm text-text-secondary dark:text-slate-400 mb-4">{student.instrument}</p>
-        
+        <p className="text-sm text-text-secondary dark:text-slate-400 mb-2">{student.instrument}</p>
+        <div className="text-xs text-text-tertiary dark:text-slate-400 mb-4">Last attendance: {lastAttendanceLabel}</div>
         <div className="space-y-2.5 text-sm text-left w-full border-t border-surface-border dark:border-slate-700 pt-4">
-            <DetailItem label="Gender" value={student.gender} />
-            <DetailItem label="Age" value={student.age} />
-            <DetailItem label="Email" value={student.email} />
-            <DetailItem label="Contact" value={student.contactNumber} />
-            {student.guardianName && (
-                 <div className="pt-2.5 mt-2.5 border-t border-surface-border dark:border-slate-700">
-                    <DetailItem label="Guardian" value={student.guardianName} />
-                 </div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-semibold text-text-primary dark:text-slate-200">Contact</div>
+              {!isEditingContact ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingContact(true)}
+                    className="text-xs px-2 py-0.5 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkAttendance(student.id)}
+                    disabled={wasAttendedRecently || student.status === 'inactive'}
+                    className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-md font-semibold transition-colors ${
+                      wasAttendedRecently
+                        ? 'bg-surface-input dark:bg-slate-700 text-text-tertiary dark:text-slate-500 cursor-not-allowed'
+                        : 'bg-brand-primary-light dark:bg-brand-primary/20 text-text-primary dark:text-brand-primary hover:bg-black/5 dark:hover:bg-brand-primary/30'
+                    }`}
+                  >
+                    <CheckIcon />
+                    {wasAttendedRecently ? 'Attended' : 'Attend'}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            {!isEditingContact ? (
+              <div className="space-y-2">
+                <DetailItem label="Gender" value={student.gender} />
+                <DetailItem label="Age" value={student.age} />
+                <DetailItem label="Email" value={student.email} copiable />
+                <DetailItem label="Contact" value={student.contactNumber ? formatPhone(student.contactNumber) : undefined} copiable />
+                <DetailItem label="Facebook" value={student.facebook} copiable makeUrlIfHttp />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={e => setContactEmail(e.target.value)}
+                    className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(e.target.value)}
+                    className={`w-full bg-surface-input dark:bg-slate-700 border ${errors.contactPhone ? 'border-status-red' : 'border-surface-border dark:border-slate-600'} rounded-md p-2`}
+                    placeholder="(555) 123-4567"
+                  />
+                  {errors.contactPhone && <div className="text-xs text-status-red mt-1">{errors.contactPhone}</div>}
+                </div>
+                <div>
+                  <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Facebook (name or link)</label>
+                  <input
+                    type="text"
+                    value={contactFacebook}
+                    onChange={e => setContactFacebook(e.target.value)}
+                    className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                    placeholder="https://facebook.com/..."
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveContact}
+                    className="text-xs px-3 py-1 rounded-md bg-brand-primary text-text-on-color"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditingContact(false); setContactEmail(student.email || ''); setContactPhone(student.contactNumber || ''); setContactFacebook(student.facebook || ''); setErrors({ ...errors, contactPhone: undefined }); }}
+                    className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             )}
+
+            <div className="pt-2.5 mt-2.5 border-t border-surface-border dark:border-slate-700">
+              <div className="flex items-center justify-between mb-1">
+                <div className="font-semibold text-text-primary dark:text-slate-200">Guardian Details</div>
+                {!isEditingGuardian && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingGuardian(true)}
+                    className="text-xs px-2 py-0.5 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+              {isMinor && ((!(student.guardianFullName || student.guardianName)) || !student.guardianPhone || !student.guardianEmail) && (
+                <div className="mb-3 text-xs px-2 py-1 rounded bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow">
+                  Guardian contact is recommended for minors. Please complete missing fields.
+                </div>
+              )}
+              {!isEditingGuardian ? (
+                <div className="space-y-2">
+                  <DetailItem label="Guardian Name" value={student.guardianFullName || student.guardianName || 'N/A'} />
+                  <DetailItem label="Guardian Phone" value={student.guardianPhone ? formatPhone(student.guardianPhone) : 'N/A'} copiable />
+                  <DetailItem label="Guardian Email" value={student.guardianEmail || 'N/A'} copiable />
+                  <DetailItem label="Guardian Facebook" value={student.guardianFacebook || 'N/A'} copiable makeUrlIfHttp />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={gName}
+                      onChange={e => setGName(e.target.value)}
+                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      placeholder="Jane D. Smith"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={gPhone}
+                      onChange={e => setGPhone(e.target.value)}
+                      className={`w-full bg-surface-input dark:bg-slate-700 border ${errors.gPhone ? 'border-status-red' : 'border-surface-border dark:border-slate-600'} rounded-md p-2`}
+                      placeholder="(555) 123-4567"
+                    />
+                    {errors.gPhone && <div className="text-xs text-status-red mt-1">{errors.gPhone}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={gEmail}
+                      onChange={e => setGEmail(e.target.value)}
+                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      placeholder="guardian@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary dark:text-slate-400 mb-1">Facebook (name or link)</label>
+                    <input
+                      type="text"
+                      value={gFacebook}
+                      onChange={e => setGFacebook(e.target.value)}
+                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      placeholder="https://facebook.com/..."
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveGuardian}
+                      className="text-xs px-3 py-1 rounded-md bg-brand-primary text-text-on-color"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditingGuardian(false); setGName(student.guardianFullName || student.guardianName || ''); setGPhone(student.guardianPhone || ''); setGEmail(student.guardianEmail || ''); setGFacebook(student.guardianFacebook || ''); setErrors({ ...errors, gPhone: undefined }); }}
+                      className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
         </div>
       </Card>
 
-      <Card className="p-4">
-        <h3 className="text-base font-semibold text-text-primary dark:text-slate-100 mb-3">Scheduled Lessons</h3>
+      <Card className="p-4 flex flex-col h-full">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-text-primary dark:text-slate-100">Scheduled Lessons</h3>
+          <div className="flex items-center gap-2">
+            <select
+              value={lessonFilter}
+              onChange={e => { setLessonFilter(e.target.value as any); setLessonPage(1); }}
+              className="text-xs bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md px-2 py-1"
+            >
+              <option value="all">All</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+          </div>
+        </div>
         {lessons.length > 0 ? (
-          <ul className="space-y-2">
-            {lessons.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(lesson => {
-              const instructor = instructorMap.get(lesson.instructorId);
-              // Use a regex replace to avoid timezone issues with `new Date()` from ISO string
-              const lessonDate = new Date(lesson.date.replace(/-/g, '\/'));
-              return (
-                <li key={lesson.id} className="p-3 bg-surface-main dark:bg-slate-700/50 rounded-md border border-surface-border dark:border-slate-700">
-                  <p className="text-sm font-semibold text-text-primary dark:text-slate-200">{lessonDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} at {lesson.time}</p>
-                  <p className="text-xs text-text-secondary dark:text-slate-400">Instructor: {instructor?.name || 'N/A'}</p>
-                  {lesson.notes && (
-                    <p className="text-xs text-text-secondary dark:text-slate-400 mt-1 pt-1 border-t border-surface-border dark:border-slate-600">
-                      <span className="font-medium">Note:</span> {lesson.notes}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {filteredLessons.length === 0 ? (
+              <p className="text-sm text-text-secondary dark:text-slate-400">No lessons for this filter.</p>
+            ) : (
+              <ul className="space-y-2">
+                {pagedLessons.map(lesson => {
+                  const instructor = instructorMap.get(lesson.instructorId);
+                  // Use a regex replace to avoid timezone issues with `new Date()` from ISO string
+                  const lessonDate = new Date(lesson.date.replace(/-/g, '\/'));
+                  return (
+                    <li key={lesson.id} className="p-3 bg-surface-main dark:bg-slate-700/50 rounded-md border border-surface-border dark:border-slate-700">
+                      <p className="text-sm font-semibold text-text-primary dark:text-slate-200">{lessonDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} at {lesson.time}</p>
+                      <p className="text-xs text-text-secondary dark:text-slate-400">Instructor: {instructor?.name || 'N/A'}</p>
+                      {lesson.notes && (
+                        <p className="text-xs text-text-secondary dark:text-slate-400 mt-1 pt-1 border-t border-surface-border dark:border-slate-600">
+                          <span className="font-medium">Note:</span> {lesson.notes}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         ) : (
           <p className="text-sm text-text-secondary dark:text-slate-400">No sessions scheduled.</p>
         )}
+        {filteredLessons.length > 0 && (
+          <div className="mt-2 flex items-center justify-between text-xs text-text-secondary dark:text-slate-400">
+            <span>
+              Page {lessonPage} of {totalLessonPages}
+            </span>
+            <div className="space-x-2">
+              <button
+                type="button"
+                disabled={lessonPage <= 1}
+                onClick={() => setLessonPage(p => Math.max(1, p - 1))}
+                className="px-2 py-0.5 rounded border border-surface-border dark:border-slate-700 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={lessonPage >= totalLessonPages}
+                onClick={() => setLessonPage(p => Math.min(totalLessonPages, p + 1))}
+                className="px-2 py-0.5 rounded border border-surface-border dark:border-slate-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
       
-      <Card className="p-4">
+      <Card className="p-4 flex flex-col h-full">
         <h3 className="text-base font-semibold text-text-primary dark:text-slate-100 mb-3">Payment History</h3>
         {billings.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-surface-border dark:border-slate-700">
@@ -109,7 +477,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                 </tr>
               </thead>
               <tbody>
-                {billings.sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime()).map(bill => (
+                {pagedBills.map(bill => (
                   <tr key={bill.id} className="border-b border-surface-border dark:border-slate-700 last:border-b-0">
                     <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{new Date(bill.dateIssued).toLocaleDateString()}</td>
                     <td className="py-2 text-sm text-text-secondary dark:text-slate-400">${bill.amount.toFixed(2)}</td>
@@ -127,6 +495,29 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           </div>
         ) : (
           <p className="text-sm text-text-secondary dark:text-slate-400">No billing history found.</p>
+        )}
+        {sortedBills.length > 0 && (
+          <div className="mt-2 flex items-center justify-between text-xs text-text-secondary dark:text-slate-400">
+            <span>Page {billingPage} of {totalBillingPages}</span>
+            <div className="space-x-2">
+              <button
+                type="button"
+                disabled={billingPage <= 1}
+                onClick={() => setBillingPage(p => Math.max(1, p - 1))}
+                className="px-2 py-0.5 rounded border border-surface-border dark:border-slate-700 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={billingPage >= totalBillingPages}
+                onClick={() => setBillingPage(p => Math.min(totalBillingPages, p + 1))}
+                className="px-2 py-0.5 rounded border border-surface-border dark:border-slate-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </Card>
     </div>

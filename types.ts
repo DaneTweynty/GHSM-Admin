@@ -10,6 +10,11 @@ export interface Student {
   email?: string;
   contactNumber?: string;
   guardianName?: string;
+  guardianFullName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  guardianFacebook?: string;
+  facebook?: string; // Student's Facebook account or link
   gender?: 'Male' | 'Female';
   status: 'active' | 'inactive';
   profilePictureUrl?: string;
@@ -37,6 +42,13 @@ export interface Lesson {
   status: 'scheduled' | 'deleted';
 }
 
+export interface BillingItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitAmount: number; // price per unit
+}
+
 export interface Billing {
   id:string;
   studentId: string;
@@ -45,6 +57,8 @@ export interface Billing {
   status: 'paid' | 'unpaid';
   sessionsCovered: number;
   dateIssued: string;
+  // Optional line items for invoice breakdown
+  items?: BillingItem[];
 }
 
 export type View = 'dashboard' | 'students' | 'billing' | 'enrollment' | 'teachers' | 'trash';
