@@ -2,9 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Thin scrollbar utility for time picker lists and modals */
+.thin-scroll {
+  scrollbar-width: thin; /* Firefox */
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.35);
+  border-radius: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.5);
+}
+
+/* Custom scrollbar utilities for better styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thumb-slate-400::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.5);
+  border-radius: 6px;
+}
+.scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+  background-color: rgb(71 85 105 / 0.5);
+  border-radius: 6px;
+}
+.hover\:scrollbar-thumb-slate-500:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(100 116 139 / 0.7);
+}
+.dark .dark\:scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+  background-color: rgb(71 85 105 / 0.5);
+}
+.dark .dark\:hover\:scrollbar-thumb-slate-500:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(100 116 139 / 0.7);
+}
+
 /* App theme tweaks */
 :root {
   color-scheme: light dark;
 }
 
 a, button { outline-offset: 2px; }
+
+/* Comfort light adjustments (activated when html has class 'comfort') */
+.comfort .bg-surface-main { background-color: #F1F4F8 !important; }
+.comfort .bg-surface-card { background-color: #F9FBFF !important; }
+.comfort .bg-surface-header { background-color: #E9EFF6 !important; }
+.comfort .bg-surface-input { background-color: #ECF1F7 !important; }
+.comfort .border-surface-border { border-color: #C3CFDE !important; }
+.comfort .text-text-primary { color: #253043 !important; }
+.comfort .text-text-secondary { color: #58667B !important; }
+
+/* Comfort: slightly roomier controls and softer borders */
+.comfort select,
+.comfort input,
+.comfort textarea {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  border-color: #B8C7DA !important; /* reduce contrast slightly */
+  box-shadow: inset 0 1px 1px rgba(30, 41, 59, 0.05);
+}
+
+/* Comfort: cards get a subtle inner softness */
+.comfort .bg-surface-card {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 2px rgba(16,24,40,0.05) !important;
+}
+
+/* Comfort-only control tweaks: softer radius and focus ring */
+.comfort select,
+.comfort input,
+.comfort textarea {
+  border-radius: 10px !important; /* slightly larger than md */
+}
+.comfort select:focus,
+.comfort input:focus,
+.comfort textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(56, 116, 203, 0.25) inset !important; /* soft inner focus */
+}
+
+/* Reduced motion: disable popover scale animation */
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[scale-in_100ms_ease-out\] { animation: none !important; }
+}

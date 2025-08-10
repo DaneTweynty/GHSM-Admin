@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Student } from '../types';
-import { Card } from './Card';
+import { control } from './ui';
 import { ADMIN_PASSWORD } from '../constants';
 
 interface EditSessionModalProps {
@@ -49,16 +49,20 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ isOpen, onCl
     onClose();
   };
   
-  const inputClasses = "w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-text-primary dark:text-slate-100 focus:ring-brand-primary dark:focus:ring-brand-secondary focus:border-brand-primary dark:focus:border-brand-secondary";
+  const inputClasses = control;
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-center items-center p-4" onClick={handleModalClose} role="dialog" aria-modal="true">
-      <div onClick={e => e.stopPropagation()} className="w-full max-w-sm">
-        <Card>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-sm bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-[0_1px_2px_rgba(16,24,40,0.06),_0_1px_3px_rgba(16,24,40,0.10)] dark:shadow-none max-h-[90vh] flex flex-col">
+        {/* Fixed Header */}
+        <div className="p-4 border-b border-surface-border dark:border-slate-700 flex-shrink-0">
+          <h2 className="text-xl font-bold text-text-primary dark:text-slate-100">Edit Unpaid Sessions</h2>
+          <p className="text-text-secondary dark:text-slate-400">For student: <span className="font-semibold text-brand-secondary">{student.name}</span></p>
+        </div>
+        
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto thin-scroll">
           <div className="p-6">
-            <h2 className="text-xl font-bold text-text-primary dark:text-slate-100 mb-2">Edit Unpaid Sessions</h2>
-            <p className="text-text-secondary dark:text-slate-400 mb-6">For student: <span className="font-semibold text-brand-secondary">{student.name}</span></p>
-            
             {error && <div className="bg-status-red-light dark:bg-status-red/20 border-status-red/20 text-status-red px-4 py-3 rounded-md mb-4 font-medium" role="alert">{error}</div>}
 
             {!isAuthenticated ? (
@@ -89,16 +93,22 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ isOpen, onCl
                   className={inputClasses}
                   autoFocus
                 />
-                <div className="flex justify-end space-x-3 mt-6">
-                    <button type="button" onClick={handleModalClose} className="px-4 py-2 rounded-md font-semibold text-text-secondary dark:text-slate-300 bg-surface-input dark:bg-slate-600 hover:brightness-95 dark:hover:bg-slate-500 transition-all">Cancel</button>
-                    <button type="button" onClick={handleSave} className="px-4 py-2 rounded-md font-semibold text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity">
-                        Save Changes
-                    </button>
-                </div>
               </div>
             )}
           </div>
-        </Card>
+        </div>
+        
+        {/* Fixed Footer */}
+        {isAuthenticated && (
+          <div className="p-4 border-t border-surface-border dark:border-slate-700 flex-shrink-0">
+            <div className="flex justify-end space-x-3">
+              <button type="button" onClick={handleModalClose} className="px-4 py-2 rounded-md font-semibold text-text-secondary dark:text-slate-300 bg-surface-input dark:bg-slate-600 hover:brightness-95 dark:hover:bg-slate-500 transition-all">Cancel</button>
+              <button type="button" onClick={handleSave} className="px-4 py-2 rounded-md font-semibold text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

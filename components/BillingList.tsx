@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import ThemedSelect from './ThemedSelect';
+import { control } from './ui';
 import type { Billing, Student, PaymentMethod } from '../types';
 import { Card } from './Card';
 import { ICONS } from '../constants';
@@ -474,7 +476,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setUnpaidPage(1); }}
                 placeholder="Search student..."
-                className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-sm text-text-primary dark:text-slate-100"
+                className={`${control} text-sm`}
                 aria-label="Search pending invoices by student name"
               />
             </label>
@@ -535,7 +537,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                 value={paidQuery}
                 onChange={(e) => { setPaidQuery(e.target.value); setPaidPage(1); }}
                 placeholder="Search student..."
-                className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-sm text-text-primary dark:text-slate-100"
+                className={`${control} text-sm`}
                 aria-label="Search payment history by student name"
               />
             </label>
@@ -643,14 +645,14 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                   {items.map((it) => (
                     <div key={it.id} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                       <input
-                        className="sm:col-span-6 col-span-1 bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-sm"
+                        className={`${control} sm:col-span-6 col-span-1 text-sm`}
                         placeholder="Description"
                         value={it.description}
                         onChange={e => updateItem(it.id, { description: e.target.value })}
                       />
                       <input
                         type="number"
-                        className="sm:col-span-2 col-span-1 bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-sm"
+                        className={`${control} sm:col-span-2 col-span-1 text-sm`}
                         placeholder="Qty"
                         min={0}
                         value={it.quantity}
@@ -658,7 +660,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                       />
                       <input
                         type="number"
-                        className="sm:col-span-3 col-span-1 bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-sm"
+                        className={`${control} sm:col-span-3 col-span-1 text-sm`}
                         placeholder="Unit Amount"
                         min={0}
                         step="0.01"
@@ -786,25 +788,25 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                     <input type="number" min={0} step="0.01" value={payAmount} onChange={e => {
                       const v = Math.max(0, Number(e.target.value));
                       setPayAmount(v);
-                    }} className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2" />
+                    }} className={control} />
                     <span className="mt-1 block text-[11px] text-text-tertiary dark:text-slate-400">Any excess will be added as credit.</span>
                   </label>
                   <label className="text-sm">
                     <span className="block mb-1 text-text-secondary">Payment Method</span>
-                    <select value={payMethod} onChange={e => setPayMethod(e.target.value as PaymentMethod)} className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2">
+                    <ThemedSelect value={payMethod} onChange={e => setPayMethod(e.target.value as PaymentMethod)}>
                       <option>Cash</option>
                       <option>BDO</option>
                       <option>GCash</option>
                       <option>Other</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
                   <label className="text-sm sm:col-span-2">
                     <span className="block mb-1 text-text-secondary">OR / Transaction No. (optional)</span>
-                    <input type="text" value={payRef} onChange={e => setPayRef(e.target.value)} className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2" />
+                    <input type="text" value={payRef} onChange={e => setPayRef(e.target.value)} className={control} />
                   </label>
                   <label className="text-sm sm:col-span-2">
                     <span className="block mb-1 text-text-secondary">Note (optional)</span>
-                    <textarea value={payNote} onChange={e => setPayNote(e.target.value)} rows={3} className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2" />
+                    <textarea value={payNote} onChange={e => setPayNote(e.target.value)} rows={3} className={control} />
                   </label>
                 </div>
                 <div className="mt-5 text-right">

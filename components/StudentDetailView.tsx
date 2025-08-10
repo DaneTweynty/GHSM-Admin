@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import ThemedSelect from './ThemedSelect';
+import { control } from './ui';
 import type { Student, Lesson, Billing, Instructor } from '../types';
 import { Card } from './Card';
 import { useApp } from '../context/AppContext';
@@ -274,7 +276,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                     type="email"
                     value={contactEmail}
                     onChange={e => setContactEmail(e.target.value)}
-                    className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                    className={control}
                     placeholder="name@example.com"
                   />
                 </div>
@@ -284,7 +286,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                     type="tel"
                     value={contactPhone}
                     onChange={e => setContactPhone(e.target.value)}
-                    className={`w-full bg-surface-input dark:bg-slate-700 border ${errors.contactPhone ? 'border-status-red' : 'border-surface-border dark:border-slate-600'} rounded-md p-2`}
+                    className={`${control} ${errors.contactPhone ? 'border-status-red' : ''}`}
                     placeholder="(555) 123-4567"
                   />
                   {errors.contactPhone && <div className="text-xs text-status-red mt-1">{errors.contactPhone}</div>}
@@ -295,7 +297,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                     type="text"
                     value={contactFacebook}
                     onChange={e => setContactFacebook(e.target.value)}
-                    className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                    className={control}
                     placeholder="https://facebook.com/..."
                   />
                 </div>
@@ -351,7 +353,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                       type="text"
                       value={gName}
                       onChange={e => setGName(e.target.value)}
-                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      className={control}
                       placeholder="Jane D. Smith"
                     />
                   </div>
@@ -361,7 +363,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                       type="tel"
                       value={gPhone}
                       onChange={e => setGPhone(e.target.value)}
-                      className={`w-full bg-surface-input dark:bg-slate-700 border ${errors.gPhone ? 'border-status-red' : 'border-surface-border dark:border-slate-600'} rounded-md p-2`}
+                      className={`${control} ${errors.gPhone ? 'border-status-red' : ''}`}
                       placeholder="(555) 123-4567"
                     />
                     {errors.gPhone && <div className="text-xs text-status-red mt-1">{errors.gPhone}</div>}
@@ -372,7 +374,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                       type="email"
                       value={gEmail}
                       onChange={e => setGEmail(e.target.value)}
-                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      className={control}
                       placeholder="guardian@example.com"
                     />
                   </div>
@@ -382,7 +384,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                       type="text"
                       value={gFacebook}
                       onChange={e => setGFacebook(e.target.value)}
-                      className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2"
+                      className={control}
                       placeholder="https://facebook.com/..."
                     />
                   </div>
@@ -412,15 +414,15 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-text-primary dark:text-slate-100">Scheduled Lessons</h3>
           <div className="flex items-center gap-2">
-            <select
+            <ThemedSelect
               value={lessonFilter}
               onChange={e => { setLessonFilter(e.target.value as any); setLessonPage(1); }}
-              className="text-xs bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md px-2 py-1"
+              className="text-xs px-2 py-1"
             >
               <option value="all">All</option>
               <option value="upcoming">Upcoming</option>
               <option value="past">Past</option>
-            </select>
+            </ThemedSelect>
           </div>
         </div>
         {lessons.length > 0 ? (

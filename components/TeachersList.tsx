@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Instructor, Student, Lesson } from '../types';
 import { Card } from './Card';
 import { TeacherDetailView } from './TeacherDetailView';
+import { InstructorProfilePopover } from './InstructorProfilePopover';
 import { ICONS } from '../constants';
 
 interface TeachersListProps {
@@ -39,9 +40,27 @@ const InstructorAvatar: React.FC<{ instructor: Instructor }> = ({ instructor }) 
 
 export const TeachersList: React.FC<TeachersListProps> = ({ instructors, students, lessons, onMarkAttendance, onEditInstructor, onAddInstructor, onToggleInstructorStatus }) => {
   const [expandedInstructorId, setExpandedInstructorId] = useState<string | null>(null);
+  const [profilePopoverInstructorId, setProfilePopoverInstructorId] = useState<string | null>(null);
+  const infoButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   const handleToggleDetails = (instructorId: string) => {
     setExpandedInstructorId(prevId => (prevId === instructorId ? null : instructorId));
+  };
+
+  const handleShowProfile = (instructorId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setProfilePopoverInstructorId(instructorId);
+  };
+
+  const handleCloseProfile = () => {
+    setProfilePopoverInstructorId(null);
+  };
+
+  const formatSpecialties = (specialty: string | string[]): string => {
+    if (Array.isArray(specialty)) {
+      return specialty.join(', ');
+    }
+    return specialty || '';
   };
 
   return (
@@ -77,14 +96,46 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
                     <React.Fragment key={instructor.id}>
                         <tr className={`block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-all duration-300 ${instructor.status === 'inactive' ? 'opacity-60' : ''}`}>
                             <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell">
-                                <button onClick={() => handleToggleDetails(instructor.id)} className="flex items-center w-full text-left group">
-                                    <InstructorAvatar instructor={instructor} />
-                                    <div className="ml-4 text-sm font-medium text-text-primary dark:text-slate-100 group-hover:text-brand-primary transition-colors">{instructor.name}</div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </button>
+                                <div className="flex items-center justify-between w-full">
+                                  <button onClick={() => handleToggleDetails(instructor.id)} className="flex items-center text-left group flex-1">
+                                      <InstructorAvatar instructor={instructor} />
+                                      <div className="ml-4 text-sm font-medium text-text-primary dark:text-slate-100 group-hover:text-brand-primary transition-colors">{instructor.name}</div>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                  </button>
+                                  <button
+                                    ref={el => infoButtonRefs.current[instructor.id] = el}
+                                    onClick={(e) => handleShowProfile(instructor.id, e)}
+                                    className="ml-2 p-1 rounded-full text-text-tertiary hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
+                                    aria-label={`View ${instructor.name} profile`}
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </button>
+                                </div>
                             </td>
-                            <td data-label="Specialty" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
-                                <div className="text-sm text-text-secondary dark:text-slate-300">{instructor.specialty}</div>
+                            <td data-label="Specialty" className="px-4 py-3 md:px-6 md:py-4 block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
+                                <div className="text-sm text-text-secondary dark:text-slate-300">
+                                  <div className="flex flex-wrap gap-1 justify-end md:justify-start">
+                                    {Array.isArray(instructor.specialty) ? (
+                                      instructor.specialty.slice(0, 2).map((spec, index) => (
+                                        <span 
+                                          key={index}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-primary/10 text-brand-primary dark:bg-brand-secondary/20 dark:text-brand-secondary"
+                                        >
+                                          {spec}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-sm">{instructor.specialty}</span>
+                                    )}
+                                    {Array.isArray(instructor.specialty) && instructor.specialty.length > 2 && (
+                                      <span className="text-xs text-text-tertiary dark:text-slate-500">
+                                        +{instructor.specialty.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                             </td>
                             <td data-label="Status" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
                                 <span className={`px-2 inline-flex items-center text-xs leading-5 font-semibold rounded-full capitalize ${
@@ -135,6 +186,24 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
           </tbody>
         </table>
       </div>
+      
+      {/* Profile Popover */}
+      {profilePopoverInstructorId && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={handleCloseProfile}
+          />
+          <InstructorProfilePopover
+            instructor={instructors.find(i => i.id === profilePopoverInstructorId)!}
+            students={students}
+            lessons={lessons}
+            isOpen={true}
+            onClose={handleCloseProfile}
+            anchorRef={{ current: infoButtonRefs.current[profilePopoverInstructorId] }}
+          />
+        </>
+      )}
     </Card>
   );
 };

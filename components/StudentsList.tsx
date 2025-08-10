@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { control } from './ui';
 import type { Student, Instructor, Lesson, Billing } from '../types';
 import { Card } from './Card';
 import { ICONS, BILLING_CYCLE } from '../constants';
@@ -70,7 +71,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
               type="text"
               name="student-search"
               id="student-search"
-              className="block w-full pl-10 pr-3 py-2 border border-surface-border dark:border-slate-600 rounded-md leading-5 bg-surface-input dark:bg-slate-700 text-text-primary dark:text-slate-100 placeholder-text-secondary dark:placeholder-slate-400 focus:outline-none focus:placeholder-text-tertiary dark:focus:placeholder-slate-300 focus:ring-1 focus:ring-brand-primary dark:focus:ring-brand-secondary focus:border-brand-primary dark:focus:border-brand-secondary sm:text-sm"
+              className={`${control} pl-10 sm:text-sm`}
               placeholder="Search by student name..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -95,6 +96,14 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
             {[...filteredStudents].sort((a, b) => a.name.localeCompare(b.name)).map((student) => {
               const instructor = instructorMap.get(student.instructorId || '');
               const isExpanded = expandedStudentId === student.id;
+
+              // Check if student has a lesson today
+              const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+              const hasLessonToday = lessons.some(lesson => 
+                lesson.studentId === student.id && 
+                lesson.date === today && 
+                lesson.status === 'active'
+              );
 
               const now = Date.now();
               const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -186,15 +195,17 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
                         </button>
                         <button
                           onClick={() => onMarkAttendance(student.id)}
-                          disabled={wasAttendedRecently || student.status === 'inactive'}
+                          disabled={!hasLessonToday || wasAttendedRecently || student.status === 'inactive'}
                           className={`flex items-center justify-center space-x-1.5 px-3 py-1 rounded-md font-semibold text-xs transition-colors ${
-                            wasAttendedRecently
+                            !hasLessonToday || wasAttendedRecently || student.status === 'inactive'
                               ? 'bg-surface-input dark:bg-slate-700 text-text-tertiary dark:text-slate-500 cursor-not-allowed'
-                              : 'bg-brand-primary-light dark:bg-brand-primary/20 text-text-primary dark:text-brand-primary hover:bg-black/5 dark:hover:bg-brand-primary/30 disabled:bg-surface-input dark:disabled:bg-slate-700 disabled:text-text-tertiary dark:disabled:text-slate-500 disabled:cursor-not-allowed'
+                              : 'bg-brand-primary-light dark:bg-brand-primary/20 text-text-primary dark:text-brand-primary hover:bg-black/5 dark:hover:bg-brand-primary/30'
                           }`}
                         >
                           {ICONS.check}
-                          <span>{wasAttendedRecently ? 'Attended' : 'Attend'}</span>
+                          <span>
+                            {wasAttendedRecently ? 'Attended' : !hasLessonToday ? 'No Lesson Today' : 'Attend'}
+                          </span>
                         </button>
                       </div>
                     </td>

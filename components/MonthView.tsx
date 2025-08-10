@@ -87,7 +87,8 @@ export const MonthView: React.FC<MonthViewProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-surface-border dark:bg-slate-700 border border-surface-border dark:border-slate-700 rounded-md overflow-hidden">
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-7 gap-px bg-surface-border dark:bg-slate-700 border border-surface-border dark:border-slate-700 rounded-md overflow-hidden min-w-[980px]">
       {DAYS_OF_WEEK_SHORT.map(day => (
         <div key={day} className="text-center font-medium text-text-secondary dark:text-slate-400 text-xs sm:text-sm py-2 bg-surface-header dark:bg-slate-800">
           {day}
@@ -98,16 +99,20 @@ export const MonthView: React.FC<MonthViewProps> = ({
         const dateString = toYYYYMMDD(date);
         const lessonsForDay = lessonsByDate.get(dateString) || [];
         const isToday = date.toDateString() === today.toDateString();
+        const isWeekend = [0,6].includes(date.getDay());
 
         return (
           <div 
             key={index} 
-            className={`relative bg-surface-card dark:bg-slate-800 p-1 sm:p-1.5 min-h-[90px] md:min-h-[120px] flex flex-col transition-colors ${isCurrentMonth ? '' : 'bg-surface-header/50 dark:bg-slate-900/50'}`}
+            className={`relative p-1 sm:p-1.5 min-h-[90px] md:min-h-[120px] flex flex-col transition-colors ${isCurrentMonth ? 'bg-surface-card dark:bg-slate-800' : 'bg-surface-header/50 dark:bg-slate-900/50'}`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, date)}
             onDragEnter={(e) => e.currentTarget.classList.add('bg-brand-primary-light', 'dark:bg-brand-primary/20')}
             onDragLeave={(e) => e.currentTarget.classList.remove('bg-brand-primary-light', 'dark:bg-brand-primary/20')}
           >
+            {isWeekend && (
+              <div className="absolute inset-0 bg-surface-hover/30 dark:bg-slate-700/15 pointer-events-none rounded-sm" />
+            )}
             <div className="flex justify-between items-start">
               <span className={`text-xs font-semibold p-1.5 rounded-full flex items-center justify-center h-6 w-6 ${isToday ? 'bg-brand-primary text-text-on-color' : ''} ${isCurrentMonth ? 'text-text-secondary dark:text-slate-400' : 'text-text-tertiary/70 dark:text-slate-600'}`}>
                 {date.getDate()}
@@ -148,6 +153,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
           </div>
         )
       })}
+      </div>
     </div>
   );
 };

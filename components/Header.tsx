@@ -7,8 +7,9 @@ type FontSize = 'sm' | 'base' | 'lg';
 interface HeaderProps {
   currentView: View;
   setView: (view: View) => void;
-  theme: string;
+  theme: 'light' | 'dark' | 'comfort' | 'system';
   onToggleTheme: () => void;
+  setThemeMode: (mode: 'light' | 'dark' | 'comfort' | 'system') => void;
   fontSize: FontSize;
   onFontSizeChange: (size: FontSize) => void;
   onRequestResetData: () => void;
@@ -55,7 +56,7 @@ const MoonIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
     </svg>
 );
 
-export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onToggleTheme, fontSize, onFontSizeChange, onRequestResetData, installPromptEvent, onInstallRequest }) => {
+export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onToggleTheme, setThemeMode, fontSize, onFontSizeChange, onRequestResetData, installPromptEvent, onInstallRequest }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -79,6 +80,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
       { label: 'Teachers', icon: ICONS.teachers, view: 'teachers'},
       { label: 'Students', icon: ICONS.users, view: 'students'},
       { label: 'Billing', icon: ICONS.billing, view: 'billing'},
+      { label: 'Chat', icon: ICONS.chat, view: 'chat'},
   ];
 
   const fontSizeOptions = [
@@ -89,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
 
   return (
     <>
-      <header className="bg-surface-header/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-surface-border dark:border-slate-800 sticky top-0 z-20">
+  <header className="bg-surface-header/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-surface-border dark:border-slate-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
@@ -119,8 +121,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                 >
                     {React.cloneElement<React.SVGProps<SVGSVGElement>>(ICONS.settings as React.ReactElement, { className: 'h-5 w-5' })}
                 </button>
-                {isSettingsOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-lg z-40 py-1 origin-top-right animate-[scale-in_100ms_ease-out]">
+        {isSettingsOpen && (
+          <div className="absolute right-0 top-full mt-2 w-64 bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-lg z-50 py-1 origin-top-right animate-[scale-in_100ms_ease-out]">
                         <ul>
                             {installPromptEvent && (
                                 <>
@@ -141,13 +143,14 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                             )}
                             <li className="px-4 pt-2 pb-1 text-xs font-semibold text-text-tertiary dark:text-slate-500 uppercase tracking-wider">Appearance</li>
                             <li>
-                                <button
-                                    onClick={onToggleTheme}
-                                    className="w-full text-left px-4 py-2 text-text-primary dark:text-slate-200 hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors flex items-center justify-between"
-                                >
-                                    <span>Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode</span>
-                                    {theme === 'light' ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
-                                </button>
+                              <div className="px-4 py-2">
+                                <div className="text-sm font-medium text-text-primary dark:text-slate-200 mb-2">Theme</div>
+                                <div className="grid grid-cols-4 gap-1 bg-surface-input dark:bg-slate-900 rounded-md p-1">
+                                  {(['system','light','dark','comfort'] as const).map(mode => (
+                                    <button key={mode} onClick={() => setThemeMode(mode)} className={`text-xs py-1 rounded-md ${theme===mode ? 'bg-brand-primary text-text-on-color font-semibold shadow' : 'text-text-secondary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700'}`}>{mode[0].toUpperCase()+mode.slice(1)}</button>
+                                  ))}
+                                </div>
+                              </div>
                             </li>
                             <li>
                                 <div className="px-4 py-2">

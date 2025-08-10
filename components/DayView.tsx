@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Lesson, Student, Instructor } from '../types';
 import { DAYS_OF_WEEK_FULL, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
-import { addMinutes, roundToQuarter, toMinutes, toHHMM } from '../utils/time';
+import { addMinutes, roundToQuarter, toMinutes, toHHMM, to12Hour } from '../utils/time';
 
 interface DayViewProps {
   lessons: Lesson[];
@@ -25,6 +25,11 @@ export const DayView: React.FC<DayViewProps> = ({
   onLessonDragStart,
 }) => {
   const [dragGuide, setDragGuide] = useState<null | { top: number; height: number; label: string }>(null);
+  const [now, setNow] = useState<Date>(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const instructorMap = useMemo(() => new Map(instructors.map(i => [i.id, i])), [instructors]);
 
@@ -94,8 +99,9 @@ export const DayView: React.FC<DayViewProps> = ({
         groupEnd = ev.e;
       }
     }
-    flushGroup();
-    return results;
+  flushGroup();
+  // Return original lane-based positions (side-by-side overlap)
+  return results;
   }, [lessonsForDay, startMin, endMin]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -141,7 +147,7 @@ export const DayView: React.FC<DayViewProps> = ({
     const maxTop = totalMin * PX_PER_MIN - height;
     top = Math.max(0, Math.min(top, maxTop));
     const endSnap = toHHMM(Math.min(endMin, toMinutes(snapped) + durationMin));
-    setDragGuide({ top, height, label: `${snapped}–${endSnap}` });
+  setDragGuide({ top, height, label: `${to12Hour(snapped)}–${to12Hour(endSnap)}` });
   };
 
   const handleBackgroundDragLeave = () => setDragGuide(null);
@@ -153,7 +159,12 @@ export const DayView: React.FC<DayViewProps> = ({
       {/* Header */}
       <div className="grid grid-cols-[64px_1fr]">
         <div className="p-2 text-center border-b border-r border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 text-xs text-text-secondary dark:text-slate-400">Time</div>
-        <div className="p-2 text-center border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 text-xs font-semibold text-text-primary dark:text-slate-200 uppercase tracking-wider">{dayLabel}</div>
+        <div className="p-2 text-center border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-xs sm:text-sm text-text-secondary dark:text-slate-400">{dayLabel}</span>
+            <span className={`h-6 w-6 inline-flex items-center justify-center rounded-full text-xs font-semibold ${new Date().toDateString() === currentDate.toDateString() ? 'bg-brand-primary text-text-on-color' : 'text-text-secondary dark:text-slate-400'}`}>{currentDate.getDate()}</span>
+          </div>
+        </div>
       </div>
 
       {/* Body */}
@@ -162,9 +173,22 @@ export const DayView: React.FC<DayViewProps> = ({
         <div className="relative" style={{ height: totalMin * PX_PER_MIN }}>
           {TIME_SLOTS.map((t, i) => (
             <div key={t} className="absolute left-0 right-0 px-2 text-right text-xs text-text-secondary dark:text-slate-400" style={{ top: i * HOUR_HEIGHT }}>
-              {t}
+              {to12Hour(t)}
             </div>
           ))}
+          {/* Now line on time column */}
+          {(() => {
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            if (nowMin >= startMin && nowMin <= endMin && new Date().toDateString() === currentDate.toDateString()) {
+              const top = (nowMin - startMin) * PX_PER_MIN;
+              return (
+                <div className="absolute left-0 right-0" style={{ top }}>
+                  <div className="h-px bg-brand-primary/70" />
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
         {/* Right canvas */}
   <div className="relative border-l border-surface-border dark:border-slate-700" style={{ height: totalMin * PX_PER_MIN }}
@@ -174,6 +198,20 @@ export const DayView: React.FC<DayViewProps> = ({
        onDragLeave={handleBackgroundDragLeave}
              onDoubleClick={handleBackgroundDblClick}
         >
+          {/* Now line */}
+          {(() => {
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            if (nowMin >= startMin && nowMin <= endMin && new Date().toDateString() === currentDate.toDateString()) {
+              const top = (nowMin - startMin) * PX_PER_MIN;
+              return (
+                <div className="absolute left-0 right-0 z-20" style={{ top }}>
+                  <div className="h-px bg-brand-primary" />
+                  <div className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-brand-primary" />
+                </div>
+              );
+            }
+            return null;
+          })()}
           {/* Drag guide preview */}
           {dragGuide && (
             <div className="absolute left-0 right-0 pointer-events-none" style={{ top: dragGuide.top, height: dragGuide.height }}>
@@ -217,32 +255,51 @@ export const DayView: React.FC<DayViewProps> = ({
             const student = studentMap.get(lesson.studentId);
             const instructor = instructorMap.get(lesson.instructorId);
             const hasNote = lesson.notes && lesson.notes.trim() !== '';
-            const width = `calc(100% / ${lesson._lanes} - 6px)`;
-            const left = `calc(${lesson._lane} * 100% / ${lesson._lanes})`;
-            const startLabel = lesson.time;
-            const endLabel = lesson.endTime || addMinutes(lesson.time, 60);
+            // Horizontal lanes with tight 2px gap between lanes
+            const GAP = 2;
+            const width = `calc((100% - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
+            const left = `calc(${lesson._lane} * (100% / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
+            const startLabel = to12Hour(lesson.time);
+            const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
+            const cardH = Math.max(30, lesson._height);
+            const compact = cardH < 42;
             return (
               <div key={lesson.id}
-                   className="absolute p-1"
-                   style={{ top: lesson._top, left, width, height: Math.max(24, lesson._height) }}
+                   className="absolute p-1 z-20"
+                   style={{ top: lesson._top, left, width, height: cardH }}
               >
                 <button
                   onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
                   style={{ backgroundColor: instructor?.color, height: '100%' }}
-                  className="w-full text-left p-2 rounded text-text-on-color dark:text-slate-800 transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-sm"
+                  className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-[11px] leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
                   title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
                   aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Double click to edit.`}
                   draggable="true"
                   onDragStart={(e) => onLessonDragStart(e, lesson)}
                 >
-                  <div className="flex justify-between items-start w-full">
-                    <div className="font-bold text-sm truncate">{student?.name}</div>
-                    {hasNote && (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-                    )}
-                  </div>
-                  <div className="text-xs opacity-80 truncate">{instructor?.name} • R{lesson.roomId}</div>
-                  <div className="text-[10px] opacity-90 mt-1">{startLabel}–{endLabel}</div>
+                  {/* left accent stripe */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.35), rgba(255,255,255,0.35) 2px, transparent 2px, transparent 4px)' }} />
+                  {compact ? (
+                    <>
+                      <div className="flex items-start justify-between">
+                        <span className="font-semibold truncate mr-2">{student?.name}</span>
+                        {hasNote && (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                        )}
+                      </div>
+                      <div className="text-[10px] opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between">
+                        <span className="font-semibold mr-2">{startLabel}</span>
+                        {hasNote && (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                        )}
+                      </div>
+                      <div className="truncate">{student?.name}</div>
+                    </>
+                  )}
                 </button>
               </div>
             );

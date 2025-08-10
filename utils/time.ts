@@ -35,3 +35,16 @@ export const rangesOverlap = (aStart: string, aEnd: string, bStart: string, bEnd
   const bE = toMinutes(bEnd);
   return aS < bE && aE > bS; // half-open overlap
 };
+
+// Format HH:MM (24h) to h:mm AM/PM
+export const to12Hour = (hhmm: string): string => {
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${String(m).padStart(2, '0')} ${suffix}`;
+};
+
+export const range12Hour = (start: string, end: string): string => `${to12Hour(start)}–${to12Hour(end)}`;

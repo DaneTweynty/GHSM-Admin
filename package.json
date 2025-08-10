@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
+    "lucide-react": "^0.539.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.5.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

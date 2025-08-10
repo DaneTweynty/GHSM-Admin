@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
-import { Card } from './Card';
 import type { Billing, BillingItem, Student } from '../types';
 
 interface Props {
@@ -54,9 +53,10 @@ export const InvoicePreviewModal: React.FC<Props> = ({ isOpen, onClose, billing,
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/60 backdrop-blur-md backdrop-saturate-150" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="w-full max-w-5xl px-4 py-10 overflow-hidden" onClick={e => e.stopPropagation()}>
-        <Card>
-          <div className="p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-[0_1px_2px_rgba(16,24,40,0.06),_0_1px_3px_rgba(16,24,40,0.10)] dark:shadow-none max-h-[85vh] flex flex-col">
+          {/* Fixed Header */}
+          <div className="p-4 sm:p-6 border-b border-surface-border dark:border-slate-700 flex-shrink-0">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-2xl font-bold">Invoice Preview</h3>
                 <p className="text-sm text-text-secondary">{billing.studentName} • ID: {billing.id}</p>
@@ -66,9 +66,13 @@ export const InvoicePreviewModal: React.FC<Props> = ({ isOpen, onClose, billing,
                 <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-md bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600">Close</button>
               </div>
             </div>
-
-            {/* Printable-looking content */}
-            <div ref={ref} className="bg-white text-black p-8 rounded-lg border border-surface-border" style={{width:'100%', maxWidth: '960px', margin: '0 auto'}}>
+          </div>
+          
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto thin-scroll">
+            <div className="p-4 sm:p-6">
+                          {/* Printable-looking content */}
+              <div ref={ref} className="bg-white text-black p-8 rounded-lg border border-surface-border" style={{width:'100%', maxWidth: '960px', margin: '0 auto'}}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-[240px] h-16 border border-dashed border-surface-border rounded-md flex items-center justify-center text-sm text-text-secondary">Your Logo Here</div>
@@ -151,8 +155,9 @@ export const InvoicePreviewModal: React.FC<Props> = ({ isOpen, onClose, billing,
                 <div>Invoice generated on {new Date().toLocaleString()}</div>
               </div>
             </div>
+            </div>
           </div>
-        </Card>
+        </div>
       </div>
     </div>,
     document.body

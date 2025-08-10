@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import type { Instructor } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { Instructor, Student } from '../types';
 import { Card } from './Card';
+import { control } from './ui';
+import ThemedSelect from './ThemedSelect';
+import { INSTRUMENT_OPTIONS } from '../constants';
 
 interface EnrollmentPageProps {
   instructors: Instructor[];
-  onRequestEnrollment: (studentData: { 
-    name: string; 
-    instrument: string; 
-    instructorId: string; 
+  students: Student[];
+  onRequestEnrollment: (studentData: {
+    name: string;
+    instrument: string;
+    instructorId: string;
     age: number;
     email: string;
     contactNumber: string;
     gender: 'Male' | 'Female';
-    // Student facebook (optional)
     facebook?: string;
     guardianName?: string;
-    // Additional guardian details
     guardianFullName?: string;
     guardianPhone?: string;
     guardianEmail?: string;
     guardianFacebook?: string;
+    parentStudentId?: string; // Links to original student for multi-instrument tracking
   }) => void;
   successMessage: string | null;
 }
@@ -40,7 +43,9 @@ const isValidPhone = (v: string) => {
   return d.length === 10 || (d.length === 11 && d.startsWith('1'));
 };
 
-export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onRequestEnrollment, successMessage }) => {
+export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, students, onRequestEnrollment, successMessage }) => {
+  const [isExistingStudent, setIsExistingStudent] = useState(false);
+  const [selectedExistingStudentId, setSelectedExistingStudentId] = useState('');
   const [name, setName] = useState('');
   const [instrument, setInstrument] = useState('');
   const [instructorId, setInstructorId] = useState(instructors.length > 0 ? instructors[0].id : '');
@@ -61,10 +66,107 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
   const [guardianPhoneError, setGuardianPhoneError] = useState<string | null>(null);
 
   const isMinor = age !== '' && parseInt(age, 10) < 18;
+
+  const enrolledInstruments = useMemo(() => {
+    if (!isExistingStudent || !selectedExistingStudentId) {
+      return [];
+    }
+    const selectedStudentRecord = students.find(s => s.id === selectedExistingStudentId);
+    if (!selectedStudentRecord) return [];
+
+    const rootStudentId = selectedStudentRecord.parentStudentId || selectedStudentRecord.id;
+    const rootStudent = students.find(s => s.id === rootStudentId);
+    const instruments = rootStudent ? [rootStudent.instrument] : [];
+
+    students.forEach(student => {
+      if (student.parentStudentId === rootStudentId) {
+        instruments.push(student.instrument);
+      }
+    });
+    return instruments;
+  }, [selectedExistingStudentId, students, isExistingStudent]);
+
+  const availableInstrumentsForEnrollment = useMemo(() => {
+    if (!isExistingStudent) {
+      return INSTRUMENT_OPTIONS;
+    }
+    return INSTRUMENT_OPTIONS.filter(opt => !enrolledInstruments.includes(opt));
+  }, [enrolledInstruments, isExistingStudent]);
+
+  const availableInstructors = useMemo(() => {
+    if (!instrument) {
+      return instructors;
+    }
+    return instructors.filter(i => Array.isArray(i.specialty) && i.specialty.includes(instrument));
+  }, [instrument, instructors]);
+
+  // Allow lesson assignment when creating a brand-new student,
+  // or when an existing student has been selected.
+  const canAssignLesson = useMemo(
+    () => !isExistingStudent || !!selectedExistingStudentId,
+    [isExistingStudent, selectedExistingStudentId]
+  );
+
+  useEffect(() => {
+    if (instrument && availableInstructors.length > 0) {
+      if (!availableInstructors.find(i => i.id === instructorId)) {
+        setInstructorId(availableInstructors[0].id);
+      }
+    } else if (availableInstructors.length === 0) {
+      setInstructorId('');
+    }
+  }, [instrument, availableInstructors, instructorId]);
+
+  // Handle existing student selection
+  const handleExistingStudentChange = (studentId: string) => {
+    setSelectedExistingStudentId(studentId);
+    const selectedStudent = students.find(s => s.id === studentId);
+    if (selectedStudent) {
+      setName(selectedStudent.name);
+      setAge(selectedStudent.age.toString());
+      setGender(selectedStudent.gender);
+      setEmail(selectedStudent.email);
+      setContactNumber(selectedStudent.contactNumber);
+      setFacebook(selectedStudent.facebook || '');
+      setGuardianFullName(selectedStudent.guardianFullName || '');
+      setGuardianPhone(selectedStudent.guardianPhone || '');
+      setGuardianEmail(selectedStudent.guardianEmail || '');
+      setGuardianFacebook(selectedStudent.guardianFacebook || '');
+      // Don't auto-fill instrument or instructor - let user choose new ones
+    }
+    if (!studentId) {
+      // If the selection was cleared, reset lesson assignment fields
+      setInstrument('');
+      setInstructorId('');
+    }
+  };
+
+  // Reset form when switching between new/existing student modes
+  const handleModeChange = (isExisting: boolean) => {
+    setIsExistingStudent(isExisting);
+    if (!isExisting) {
+      // Clear all fields when switching to new student
+      setSelectedExistingStudentId('');
+      setName('');
+      setAge('');
+      setGender('');
+      setEmail('');
+      setContactNumber('');
+      setFacebook('');
+      setGuardianFullName('');
+      setGuardianPhone('');
+      setGuardianEmail('');
+      setGuardianFacebook('');
+    }
+    setInstrument('');
+    setInstructorId(instructors.length > 0 ? instructors[0].id : '');
+  };
   
   useEffect(() => {
     // When a success message comes from the parent, clear the form.
     if (successMessage) {
+        setIsExistingStudent(false);
+        setSelectedExistingStudentId('');
         setName('');
         setInstrument('');
         setInstructorId(instructors.length > 0 ? instructors[0].id : '');
@@ -95,6 +197,11 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
       return;
     }
 
+    if (isExistingStudent && !selectedExistingStudentId) {
+      setError('Please select an existing student.');
+      return;
+    }
+
     if (!isValidPhone(contactNumber)) {
       setContactPhoneError('Enter a valid 10-digit phone (or 1+10).');
       return;
@@ -119,10 +226,12 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
         guardianPhone: guardianPhone ? normalizePhone(guardianPhone) : undefined,
         guardianEmail: guardianEmail || undefined,
         guardianFacebook: guardianFacebook || undefined,
+        // Link to original student if this is multi-instrument enrollment
+        parentStudentId: isExistingStudent ? selectedExistingStudentId : undefined,
     });
   };
   
-  const inputClasses = "w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2 text-text-primary dark:text-slate-100 focus:ring-brand-primary dark:focus:ring-brand-secondary focus:border-brand-primary dark:focus:border-brand-secondary";
+  const inputClasses = control;
   const labelClasses = "block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1";
 
   return (
@@ -133,9 +242,90 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
           <p className="text-text-secondary dark:text-slate-400 mb-6">Fill out the form below to register a new student in the system.</p>
           
           {error && <div className="bg-status-red-light dark:bg-status-red/20 border border-status-red/20 text-status-red px-4 py-3 rounded-md mb-4 font-medium" role="alert">{error}</div>}
-          {successMessage && <div className="bg-status-green-light dark:bg-status-green/20 border border-status-green/20 text-status-green px-4 py-3 rounded-md mb-4 font-medium" role="alert">{successMessage}</div>}
 
           <div className="space-y-8">
+            {/* Enrollment Type Selection */}
+            <fieldset className="space-y-4 p-4 border border-surface-border dark:border-slate-700 rounded-md">
+              <legend className="text-lg font-semibold text-text-primary dark:text-slate-200 px-2">Enrollment Type</legend>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group">
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="enrollmentType"
+                      value="new"
+                      checked={!isExistingStudent}
+                      onChange={() => handleModeChange(false)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      !isExistingStudent
+                        ? 'bg-blue-500 border-blue-500 text-white'
+                        : 'border-gray-300 dark:border-slate-600 group-hover:border-blue-400'
+                    }`}>
+                      {!isExistingStudent && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-text-primary dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">New Student</span>
+                </label>
+                <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group">
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      name="enrollmentType"
+                      value="existing"
+                      checked={isExistingStudent}
+                      onChange={() => handleModeChange(true)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isExistingStudent
+                        ? 'bg-blue-500 border-blue-500 text-white'
+                        : 'border-gray-300 dark:border-slate-600 group-hover:border-blue-400'
+                    }`}>
+                      {isExistingStudent && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-text-primary dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Existing Student (Different Instrument)</span>
+                </label>
+              </div>
+            </fieldset>
+
+            {/* Existing Student Selection */}
+            {isExistingStudent && (
+              <fieldset className="space-y-4 p-4 border border-surface-border dark:border-slate-700 rounded-md">
+                <legend className="text-lg font-semibold text-text-primary dark:text-slate-200 px-2">Select Existing Student</legend>
+                <div>
+                  <label htmlFor="existingStudent" className={labelClasses}>Current Student</label>
+                  <ThemedSelect
+                    id="existingStudent"
+                    value={selectedExistingStudentId}
+                    onChange={(e) => handleExistingStudentChange(e.target.value)}
+                    required={isExistingStudent}
+                  >
+                    <option value="">Choose a student...</option>
+                    {students
+                      .filter(s => s.status === 'active')
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(student => (
+                        <option key={student.id} value={student.id}>
+                          {student.name} - {student.instrument} (ID: {student.studentIdNumber})
+                        </option>
+                      ))}
+                  </ThemedSelect>
+                  {isExistingStudent && selectedExistingStudentId && (
+                    <p className="text-xs text-text-secondary dark:text-slate-400 mt-1">
+                      Student details have been auto-filled. You can select a new instrument and instructor below.
+                    </p>
+                  )}
+                </div>
+              </fieldset>
+            )}
+
              <fieldset className="space-y-4 p-4 border border-surface-border dark:border-slate-700 rounded-md">
                 <legend className="text-lg font-semibold text-text-primary dark:text-slate-200 px-2">Student Information</legend>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -143,42 +333,45 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                     <label htmlFor="studentName" className={labelClasses}>Student Full Name</label>
                     <input 
                       type="text" 
-                      id="studentName" 
-                      value={name} 
+                      id="studentName"
+                      value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className={inputClasses}
-                      placeholder="e.g., John Doe" 
+                      className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
+                      placeholder="e.g., Jane Doe"
                       required 
+                      readOnly={isExistingStudent}
                     />
                   </div>
                    <div>
                     <label htmlFor="age" className={labelClasses}>Age</label>
                     <input 
                       type="number" 
-                      id="age" 
+                      id="age"
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
-                      className={inputClasses}
+                      className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                       placeholder="e.g., 14"
                       min="1"
                       required 
+                      readOnly={isExistingStudent}
                     />
                   </div>
                 </div>
                  <div>
                     <label htmlFor="gender" className={labelClasses}>Gender</label>
-                    <select 
-                        id="gender"
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value as 'Male' | 'Female' | '')}
-                        className={inputClasses}
-                        required
+                    <ThemedSelect 
+                      id="gender"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value as 'Male' | 'Female' | '')}
+                      required
+                      disabled={isExistingStudent}
+                      wrapperClassName={isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800' : ''}
                     >
-                        <option value="" disabled>Select gender...</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
-                </div>
+                      <option value="" disabled>Select gender...</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </ThemedSelect>
+                 </div>
                 {isMinor && (
                   <div className="text-xs text-status-yellow bg-status-yellow-light dark:bg-status-yellow/20 px-3 py-2 rounded-md">
                     Minor detected. Please provide guardian contact details.
@@ -196,9 +389,10 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                          id="email" 
                          value={email}
                          onChange={(e) => setEmail(e.target.value)}
-                         className={inputClasses}
+                         className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                          placeholder="e.g., jane.doe@example.com" 
                          required 
+                         readOnly={isExistingStudent}
                        />
                     </div>
                     <div className="md:col-span-2">
@@ -208,10 +402,11 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                             id="contactNumber" 
                             value={contactNumber}
                             onChange={(e) => setContactNumber(e.target.value)}
-                            onBlur={() => setContactNumber(prev => formatPhone(prev))}
-                            className={`${inputClasses} ${contactPhoneError ? 'border-status-red' : ''}`}
+                            onBlur={() => !isExistingStudent && setContactNumber(prev => formatPhone(prev))}
+                            className={`${inputClasses} ${contactPhoneError ? 'border-status-red' : ''} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                             placeholder="e.g., (555) 123-4567" 
                             required 
+                            readOnly={isExistingStudent}
                         />
                         {contactPhoneError && <div className="text-xs text-status-red mt-1">{contactPhoneError}</div>}
                     </div>
@@ -222,8 +417,9 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                             id="facebook" 
                             value={facebook}
                             onChange={(e) => setFacebook(e.target.value)}
-                            className={inputClasses}
+                            className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                             placeholder="Facebook name or https://facebook.com/..." 
+                            readOnly={isExistingStudent}
                         />
                     </div>
                  </div>
@@ -241,8 +437,9 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                     id="guardianFullName"
                     value={guardianFullName}
                     onChange={(e) => setGuardianFullName(e.target.value)}
-                    className={inputClasses}
+                    className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                     placeholder="e.g., Jane D. Smith"
+                    readOnly={isExistingStudent}
                   />
                 </div>
                 <div>
@@ -252,9 +449,10 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                     id="guardianPhone"
                     value={guardianPhone}
                     onChange={(e) => setGuardianPhone(e.target.value)}
-                    onBlur={() => setGuardianPhone(prev => formatPhone(prev))}
-                    className={`${inputClasses} ${guardianPhoneError ? 'border-status-red' : ''}`}
+                    onBlur={() => !isExistingStudent && setGuardianPhone(prev => formatPhone(prev))}
+                    className={`${inputClasses} ${guardianPhoneError ? 'border-status-red' : ''} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                     placeholder="e.g., (555) 123-4567"
+                    readOnly={isExistingStudent}
                   />
                   {guardianPhoneError && <div className="text-xs text-status-red mt-1">{guardianPhoneError}</div>}
                 </div>
@@ -265,8 +463,9 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                     id="guardianEmail"
                     value={guardianEmail}
                     onChange={(e) => setGuardianEmail(e.target.value)}
-                    className={inputClasses}
+                    className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                     placeholder="guardian@email.com"
+                    readOnly={isExistingStudent}
                   />
                 </div>
                 <div>
@@ -276,8 +475,9 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                     id="guardianFacebook"
                     value={guardianFacebook}
                     onChange={(e) => setGuardianFacebook(e.target.value)}
-                    className={inputClasses}
+                    className={`${inputClasses} ${isExistingStudent ? 'bg-surface-subtle dark:bg-slate-800 text-text-secondary dark:text-slate-400' : ''}`}
                     placeholder="Facebook name or https://facebook.com/..."
+                    readOnly={isExistingStudent}
                   />
                 </div>
               </div>
@@ -288,31 +488,50 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="instrument" className={labelClasses}>Instrument</label>
-                    <input 
-                      type="text" 
-                      id="instrument" 
+                    <ThemedSelect
+                      id="instrument"
                       value={instrument}
                       onChange={(e) => setInstrument(e.target.value)}
-                      className={inputClasses}
-                      placeholder="e.g., Guitar" 
-                      required 
-                    />
+                      required
+                      disabled={!canAssignLesson || (isExistingStudent && availableInstrumentsForEnrollment.length === 0)}
+                    >
+                      <option value="" disabled>Select an instrument...</option>
+                      {availableInstrumentsForEnrollment.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                      {isExistingStudent && !selectedExistingStudentId && (
+                        <option disabled>Select an existing student first</option>
+                      )}
+                      {isExistingStudent && selectedExistingStudentId && availableInstrumentsForEnrollment.length === 0 && (
+                        <option disabled>No new instruments available</option>
+                      )}
+                    </ThemedSelect>
+                    {isExistingStudent && selectedExistingStudentId && (
+                      <p className="text-xs text-text-secondary dark:text-slate-400 mt-1">
+                        Instruments the student is already enrolled in are not shown.
+                      </p>
+                    )}
+                    {isExistingStudent && !selectedExistingStudentId && (
+                      <p className="text-xs text-text-secondary dark:text-slate-400 mt-1">
+                        Select an existing student to choose an instrument.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="instructorId" className={labelClasses}>Assign Instructor</label>
-                    <select 
-                      id="instructorId" 
+                    <ThemedSelect
+                      id="instructorId"
                       value={instructorId}
                       onChange={(e) => setInstructorId(e.target.value)}
-                      className={inputClasses}
                       required
+                      disabled={!canAssignLesson || !instrument || availableInstructors.length === 0}
                     >
-                      {instructors.length > 0 ? (
-                        instructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty})</option>)
+                      {instrument && availableInstructors.length > 0 ? (
+                        availableInstructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty.join(', ')})</option>)
                       ) : (
-                        <option disabled>No instructors available</option>
+                        <option disabled>{instrument ? 'No instructors for this instrument' : 'Select an instrument first'}</option>
                       )}
-                    </select>
+                    </ThemedSelect>
                   </div>
                  </div>
             </fieldset>
@@ -324,7 +543,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, onR
             className="px-6 py-2 rounded-md font-semibold text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={instructors.length === 0}
           >
-            Enroll Student
+            {isExistingStudent ? 'Enroll in New Instrument' : 'Enroll Student'}
           </button>
         </div>
       </form>

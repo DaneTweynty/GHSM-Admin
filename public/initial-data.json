@@ -47,22 +47,34 @@
   "instructors": [
     {
       "name": "Dr. Eleanor Vance",
-      "specialty": "Piano",
+      "specialty": ["Piano", "Violin"],
+      "email": "eleanor.vance@musicschool.com",
+      "phone": "(555) 101-1001",
+      "bio": "Classical pianist and violinist with 20+ years of experience. PhD in Music Performance from Juilliard.",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=EleanorVance"
     },
     {
       "name": "Marco Diaz",
-      "specialty": "Guitar",
+      "specialty": ["Guitar", "Bass Guitar", "Ukulele"],
+      "email": "marco.diaz@musicschool.com",
+      "phone": "(555) 102-1002",
+      "bio": "Professional guitarist with expertise in multiple string instruments. Specializes in contemporary and folk music.",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=MarcoDiaz"
     },
     {
       "name": "Samira Al-Jamil",
-      "specialty": "Violin",
+      "specialty": ["Violin", "Voice"],
+      "email": "samira.aljamil@musicschool.com", 
+      "phone": "(555) 103-1003",
+      "bio": "Trained opera singer and accomplished violinist. Brings a multicultural approach to music education.",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=SamiraAlJamil"
     },
     {
       "name": "Kenji Tanaka",
-      "specialty": "Drums",
+      "specialty": ["Drums"],
+      "email": "kenji.tanaka@musicschool.com",
+      "phone": "(555) 104-1004", 
+      "bio": "Jazz drummer with extensive touring experience. Expert in both traditional and modern drumming techniques.",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=KenjiTanaka"
     }
   ]

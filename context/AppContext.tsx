@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import type { Student, Instructor, Lesson, Billing, View, CalendarView, Payment, PaymentMethod } from '../types';
 import { BILLING_CYCLE, LESSON_PRICE, EVENT_COLORS, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, floorToQuarter, roundToQuarter, rangesOverlap, toMinutes } from '../utils/time';
@@ -20,6 +21,8 @@ export type StudentEnrollmentData = {
   guardianPhone?: string;
   guardianEmail?: string;
   guardianFacebook?: string;
+  // Link to parent student for multi-instrument tracking
+  parentStudentId?: string;
 };
 
 export type AdminAction = 
@@ -30,6 +33,18 @@ export type AdminAction =
   | { type: 'resetData' };
 
 export type FontSize = 'sm' | 'base' | 'lg';
+
+// Transaction tracking types
+type TxStatus = 'success' | 'error' | 'info';
+type TxType =
+  | 'app.init' | 'app.reset'
+  | 'lesson.create' | 'lesson.update' | 'lesson.delete' | 'lesson.restore' | 'lesson.copy' | 'lesson.move'
+  | 'attendance.mark'
+  | 'payment.record'
+  | 'billing.update'
+  | 'student.status' | 'student.enroll' | 'student.contact.update'
+  | 'instructor.save' | 'instructor.status';
+export type TransactionEntry = { id: string; type: TxType; status: TxStatus; message: string; timestamp: number; meta?: Record<string, any> };
 
 export type AppState = {
   view: View;
@@ -48,9 +63,10 @@ export type AppState = {
   calendarView: CalendarView;
   setCalendarView: React.Dispatch<React.SetStateAction<CalendarView>>;
 
-  theme: string;
+  theme: 'light' | 'dark' | 'comfort' | 'system';
   fontSize: FontSize;
   handleThemeToggle: () => void;
+  setThemeMode: (mode: 'light' | 'dark' | 'comfort' | 'system') => void;
   handleFontSizeChange: (size: FontSize) => void;
 
   // derived
@@ -127,12 +143,18 @@ export type AppState = {
   handleDropOnTrash: (lessonId: string) => void;
 
   timeSlots: typeof TIME_SLOTS;
+
+  // Transaction tracking
+  transactions: TransactionEntry[];
 };
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [view, setView] = useState<View>('dashboard');
+  const [view, setView] = useState<View>(() => {
+    const v = localStorage.getItem('app:view') as View | null;
+    return (v === 'dashboard' || v === 'enrollment' || v === 'teachers' || v === 'students' || v === 'billing' || v === 'trash') ? v : 'dashboard';
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,8 +167,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [isAddMode, setIsAddMode] = useState<boolean>(false);
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [calendarView, setCalendarView] = useState<CalendarView>('month');
+  const [currentDate, setCurrentDate] = useState(() => {
+    const d = localStorage.getItem('app:currentDate');
+    const parsed = d ? new Date(d) : new Date();
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  });
+  const [calendarView, setCalendarView] = useState<CalendarView>(() => {
+    const cv = localStorage.getItem('app:calendarView') as CalendarView | null;
+    return (cv === 'day' || cv === 'week' || cv === 'month' || cv === 'year') ? cv : 'month';
+  });
 
   const [isEditSessionModalOpen, setIsEditSessionModalOpen] = useState<boolean>(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -157,8 +186,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [adminActionToConfirm, setAdminActionToConfirm] = useState<AdminAction | null>(null);
+  const [enrollmentSuccessMessage, setEnrollmentSuccessMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState<'light'|'dark'|'comfort'|'system'>(() => {
+    const t = localStorage.getItem('theme');
+    return (t === 'light' || t === 'dark' || t === 'comfort' || t === 'system') ? t : 'comfort';
+  });
   const [fontSize, setFontSize] = useState<FontSize>(() => {
     const storedSize = localStorage.getItem('fontSize');
     if (storedSize === 'sm' || storedSize === 'base' || storedSize === 'lg') return storedSize;
@@ -166,8 +200,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [enrollmentSuccessMessage, setEnrollmentSuccessMessage] = useState<string | null>(null);
   const [installPromptEvent, setInstallPromptEvent] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
+
+  // Transaction log and helper
+  const [transactions, setTransactions] = useState<TransactionEntry[]>(() => {
+    try {
+      const raw = localStorage.getItem('app:transactions');
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  });
+  const pushTx = useCallback((type: TxType, status: TxStatus, message: string, meta?: Record<string, any>) => {
+    const entry: TransactionEntry = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, type, status, message, timestamp: Date.now(), meta };
+    setTransactions(prev => {
+      const next = [entry, ...prev].slice(0, 100);
+      try { localStorage.setItem('app:transactions', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    if (status === 'success') toast.success(message);
+    else if (status === 'error') toast.error(message);
+    else toast(message);
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -184,10 +238,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     installPromptEvent.userChoice.then(() => setInstallPromptEvent(null));
   };
 
+  // Persist basic UI settings
   useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('app:view', view);
+  }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('app:calendarView', calendarView);
+  }, [calendarView]);
+
+  useEffect(() => {
+    // Store as ISO date to avoid TZ ambiguity on restore
+    try {
+      localStorage.setItem('app:currentDate', currentDate.toISOString());
+    } catch {}
+  }, [currentDate]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const apply = () => {
+      const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const effectiveDark = theme === 'system' ? sysDark : theme === 'dark';
+  // Apply dark class
+  if (effectiveDark) root.classList.add('dark'); else root.classList.remove('dark');
+  // Apply comfort class for comfort mode, and for system when OS prefers light
+  if (theme === 'comfort' || (theme === 'system' && !sysDark)) root.classList.add('comfort');
+  else root.classList.remove('comfort');
+    };
+    apply();
+  // Persist the explicit theme selection (including 'system')
+  try { localStorage.setItem('theme', theme); } catch {}
+    let mql: MediaQueryList | null = null;
+    if (theme === 'system' && window.matchMedia) {
+      mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => apply();
+      mql.addEventListener ? mql.addEventListener('change', listener) : mql.addListener(listener);
+      return () => {
+        if (!mql) return;
+        mql.removeEventListener ? mql.removeEventListener('change', listener as any) : mql.removeListener(listener as any);
+      };
+    }
   }, [theme]);
 
   useEffect(() => {
@@ -196,7 +286,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('fontSize', fontSize);
   }, [fontSize]);
 
-  const handleThemeToggle = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  const handleThemeToggle = () => setTheme(prev => (prev === 'light' ? 'dark' : prev === 'dark' ? 'comfort' : prev === 'comfort' ? 'system' : 'light'));
+  const setThemeMode = (mode: 'light'|'dark'|'comfort'|'system') => setTheme(mode);
   const handleFontSizeChange = (size: FontSize) => setFontSize(size);
 
   const getNewStudentIdNumber = useCallback(() => {
@@ -240,10 +331,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
       setError('Failed to initialize application data. Please try refreshing the page.');
+    pushTx('app.init', 'error', 'Failed to initialize application data');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pushTx]);
 
   useEffect(() => {
     initializeAppData();
@@ -291,6 +383,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleMarkAttendance = useCallback((studentId: string) => {
+    let updated = false;
     setStudents(prevStudents => {
       const newStudents = [...prevStudents];
       const idx = newStudents.findIndex(s => s.id === studentId);
@@ -302,8 +395,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       student.sessionsAttended += 1;
       student.lastAttendanceMarkedAt = now;
       newStudents[idx] = student;
+      updated = true;
       return newStudents;
     });
+    if (updated) pushTx('attendance.mark', 'success', 'Attendance marked');
+    else pushTx('attendance.mark', 'error', 'Attendance already marked in the last 24 hours');
   }, []);
 
   const handleRecordPayment = useCallback((billingId: string, payment: { amount: number; method: PaymentMethod; reference?: string; note?: string; overpayHandling?: 'next' | 'hold' }) => {
@@ -351,10 +447,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           return { ...s, creditBalance: credit, sessionsBilled: totalSessionsBilled };
         }));
+  const amt = Number(payment.amount || 0);
+  pushTx('payment.record', 'success', `Payment recorded (${payment.method}) - ${amt.toLocaleString()}`, { billingId, amount: amt });
       }
       return next;
     });
-  }, []);
+  }, [pushTx]);
 
   // Add: update a billing (e.g., edit line items and recalc amount)
   const handleUpdateBilling = useCallback((billingId: string, updates: Partial<Billing> & { items?: import('../types').BillingItem[] }) => {
@@ -368,7 +466,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return next;
     }));
-  }, []);
+    pushTx('billing.update', 'success', 'Billing updated', { billingId });
+  }, [pushTx]);
 
   const activeInstructors = useMemo(() => instructors.filter(i => i.status === 'active'), [instructors]);
 
@@ -405,7 +504,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const handleMoveLessonToTrash = useCallback((lessonId: string) => {
     setLessons(prev => prev.map(l => (l.id === lessonId ? { ...l, status: 'deleted' } : l)));
     handleCloseEditModal();
-  }, [handleCloseEditModal]);
+    pushTx('lesson.delete', 'success', 'Lesson moved to trash', { lessonId });
+  }, [handleCloseEditModal, pushTx]);
 
   const checkConflict = useCallback((lessonToPlace: Omit<Lesson, 'id'>, ignoreLessonId?: string): string | null => {
     for (const l of lessons) {
@@ -436,7 +536,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { repeatWeekly, repeatWeeks, ...baseData } = lessonData;
       const student = students.find(s => s.id === baseData.studentId);
       if (student && student.status === 'inactive') {
-        alert('This student is not currently enrolled. Please activate the student to schedule new lessons.');
+  const msg = 'This student is not currently enrolled. Please activate the student to schedule new lessons.';
+  toast.error(msg);
+  pushTx('lesson.create', 'error', msg);
         return;
       }
       const newLesson: Lesson = { ...baseData, status: 'scheduled' };
@@ -473,7 +575,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (!conflict) lessonsToAdd.push(repeatLesson);
         }
       }
-      setLessons(prevLessons => [...prevLessons, ...lessonsToAdd]);
+  setLessons(prevLessons => [...prevLessons, ...lessonsToAdd]);
+  const repeats = lessonsToAdd.length - 1;
+  pushTx('lesson.create', 'success', `Lesson added${repeats > 0 ? ` (+${repeats} repeats)` : ''}`);
     } else {
       const { repeatWeekly, repeatWeeks, ...baseData } = lessonData;
       const updatedLesson: Lesson = { ...baseData, status: 'scheduled' };
@@ -513,9 +617,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (newOccurrences.length) setLessons(prev => [...prev, ...newOccurrences]);
       }
+      pushTx('lesson.update', 'success', 'Lesson updated');
     }
     handleCloseEditModal();
-  }, [lessons, isAddMode, handleCloseEditModal, students, checkConflict]);
+  }, [lessons, isAddMode, handleCloseEditModal, students, checkConflict, pushTx]);
 
   const handleUpdateLessonPosition = useCallback((lessonId: string, newDate: Date, newTime: string | undefined, isCopy: boolean) => {
     const originalLesson = lessons.find(l => l.id === lessonId);
@@ -523,7 +628,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const student = students.find(s => s.id === originalLesson.studentId);
     if (student && student.status === 'inactive') {
-      alert(`Cannot schedule lessons for ${student.name} because they are not enrolled.`);
+  toast.error(`Cannot schedule lessons for ${student.name} because they are not enrolled.`);
+  pushTx('lesson.move', 'error', 'Cannot move/copy: student is not enrolled', { lessonId });
       return;
     }
 
@@ -537,7 +643,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const startMin = toMinutes(targetTime);
     const endMin = toMinutes(targetEnd);
   if (startMin < lunchMin && lunchMin < endMin) {
-      alert(`Cannot schedule a lesson overlapping the lunch break (${LUNCH_BREAK_TIME}).`);
+      toast.error(`Cannot schedule a lesson overlapping the lunch break (${LUNCH_BREAK_TIME}).`);
+      pushTx('lesson.move', 'error', 'Cannot move/copy: overlaps lunch break', { lessonId });
       return;
     }
 
@@ -547,20 +654,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newLesson: Lesson = { ...baseLessonData, id: `lesson-${Date.now()}`, notes: `(Copied) ${originalLesson.notes || ''}`.trim(), status: 'scheduled' };
       const conflict = checkConflict(newLesson);
       if (conflict) {
-        window.alert(`Could not copy lesson: ${conflict}`);
+        toast.error(`Could not copy lesson: ${conflict}`);
+        pushTx('lesson.copy', 'error', conflict, { lessonId });
         return;
       }
       setLessons(prev => [...prev, newLesson]);
+      pushTx('lesson.copy', 'success', 'Lesson copied', { lessonId, newLessonId: newLesson.id });
     } else {
   const updatedLesson = { ...baseLessonData };
       const conflict = checkConflict(updatedLesson, originalLesson.id);
       if (conflict) {
-        window.alert(`Could not move lesson: ${conflict}`);
+        toast.error(`Could not move lesson: ${conflict}`);
+        pushTx('lesson.move', 'error', conflict, { lessonId });
         return;
       }
       setLessons(prev => prev.map(l => (l.id === lessonId ? updatedLesson : l)));
+      pushTx('lesson.move', 'success', 'Lesson moved', { lessonId });
     }
-  }, [lessons, checkConflict, students]);
+  }, [lessons, checkConflict, students, pushTx]);
 
   const handleEnrollStudent = useCallback((studentData: StudentEnrollmentData) => {
     const newStudent: Student = {
@@ -585,13 +696,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       guardianFacebook: studentData.guardianFacebook,
       status: 'active',
       profilePictureUrl: undefined,
+      // Link to parent student for multi-instrument tracking
+      parentStudentId: studentData.parentStudentId,
     };
     setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)));
   }, [getNewStudentIdNumber]);
 
   const handleToggleStudentStatus = useCallback((studentId: string) => {
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, status: student.status === 'active' ? 'inactive' : 'active' } : student)));
-  }, []);
+    const s = students.find(st => st.id === studentId);
+    if (s) pushTx('student.status', 'success', `Student ${s.status === 'active' ? 'deactivated' : 'activated'}`, { studentId });
+  }, [students, pushTx]);
 
   const handleOpenEditSessionModal = useCallback((student: Student) => {
     setEditingStudent(student);
@@ -606,6 +721,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const handleUpdateStudentSessions = useCallback((studentId: string, unpaidCount: number) => {
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, sessionsAttended: student.sessionsBilled + unpaidCount } : student)));
     handleCloseEditSessionModal();
+  pushTx('student.status', 'success', 'Sessions updated', { studentId, unpaidCount });
   }, [handleCloseEditSessionModal]);
 
   // Add: handler to update student's contact/guardian details
@@ -619,7 +735,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     guardianFacebook?: string;
   }) => {
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
-  }, []);
+    pushTx('student.contact.update', 'success', 'Student contact updated', { studentId });
+  }, [pushTx]);
 
   const handleOpenEditInstructorModal = useCallback((instructor: Instructor) => {
     setEditingInstructor(instructor);
@@ -642,18 +759,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isAddInstructorMode) {
       const newInstructor: Instructor = { ...instructorData, id: `inst-${Date.now()}`, status: 'active' };
       setInstructors(prev => [...prev, newInstructor].sort((a, b) => a.name.localeCompare(b.name)));
+    pushTx('instructor.save', 'success', 'Instructor added', { instructorId: newInstructor.id });
     } else {
       setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorData.id ? instructorData : inst)));
+    pushTx('instructor.save', 'success', 'Instructor updated', { instructorId: instructorData.id });
     }
     handleCloseEditInstructorModal();
-  }, [isAddInstructorMode, handleCloseEditInstructorModal]);
+  }, [isAddInstructorMode, handleCloseEditInstructorModal, pushTx]);
 
   const handleRequestAdminAction = useCallback((action: AdminAction) => {
     setAdminActionToConfirm(action);
     setIsAdminAuthModalOpen(true);
   }, []);
 
-  const handleAdminAuthSuccess = useCallback(() => {
+  const handleAdminAuthSuccess = useCallback(async () => {
     setIsAdminAuthModalOpen(false);
     if (!adminActionToConfirm) return;
     switch (adminActionToConfirm.type) {
@@ -662,26 +781,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         break;
       case 'toggleInstructorStatus': {
         const { instructorId } = adminActionToConfirm;
-        setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorId ? { ...inst, status: inst.status === 'active' ? 'inactive' : 'active' } : inst)));
+    setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorId ? { ...inst, status: inst.status === 'active' ? 'inactive' : 'active' } : inst)));
+    const inst = instructors.find(i => i.id === instructorId);
+    if (inst) pushTx('instructor.status', 'success', `Instructor ${inst.status === 'active' ? 'deactivated' : 'activated'}`, { instructorId });
         break;
       }
       case 'deleteLessonPermanently': {
         setLessons(prev => prev.filter(l => l.id !== adminActionToConfirm.lessonId));
+    pushTx('lesson.delete', 'success', 'Lesson permanently deleted', { lessonId: adminActionToConfirm.lessonId });
         break;
       }
       case 'enrollStudent': {
         const { studentData } = adminActionToConfirm;
         handleEnrollStudent(studentData);
-        setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
-        setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
+  setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
+  // Let page banners still work if any component uses the message
+  setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
+  pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);
         break;
       }
       case 'resetData':
-        initializeAppData();
+    await initializeAppData();
+    pushTx('app.reset', 'success', 'Application data reset');
         break;
     }
     setAdminActionToConfirm(null);
-  }, [adminActionToConfirm, handleOpenAddInstructorModal, handleEnrollStudent, initializeAppData]);
+  }, [adminActionToConfirm, handleOpenAddInstructorModal, handleEnrollStudent, initializeAppData, instructors, pushTx]);
 
   const handleCloseAdminAuthModal = useCallback(() => {
     setIsAdminAuthModalOpen(false);
@@ -704,11 +829,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!lessonToRestore) return;
     const conflict = checkConflict(lessonToRestore, lessonId);
     if (conflict) {
-      alert(`Could not restore lesson: ${conflict}`);
+      toast.error(`Could not restore lesson: ${conflict}`);
+      pushTx('lesson.restore', 'error', conflict, { lessonId });
       return;
     }
     setLessons(prev => prev.map(l => (l.id === lessonId ? { ...l, status: 'scheduled' } : l)));
-  }, [lessons]);
+    pushTx('lesson.restore', 'success', 'Lesson restored', { lessonId });
+  }, [lessons, pushTx]);
 
   const getAdminActionDescription = () => {
     if (!adminActionToConfirm) return '';
@@ -756,7 +883,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     students, instructors, lessons, billings,
     currentDate, setCurrentDate,
     calendarView, setCalendarView,
-    theme, fontSize, handleThemeToggle, handleFontSizeChange,
+  theme, fontSize, handleThemeToggle, setThemeMode, handleFontSizeChange,
     activeLessons, deletedLessons, activeInstructors,
     initializeAppData,
     handleNavigate, handleDateSelect,
@@ -776,6 +903,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   enrollmentSuccessMessage, installPromptEvent, handleInstallRequest,
   isDragging, handleDropOnTrash,
     timeSlots,
+  transactions,
   };
 
   return (

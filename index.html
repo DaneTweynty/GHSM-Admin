@@ -11,22 +11,36 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <script>
-      // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
+      // On page load, apply theme and font size to avoid FOUC
+      (function() {
+        try {
+          const root = document.documentElement;
+          const storedTheme = localStorage.getItem('theme');
+          const sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.classList.remove('dark', 'comfort');
+          if (storedTheme === 'dark') {
+            root.classList.add('dark');
+          } else if (storedTheme === 'light') {
+            // base light: no classes
+          } else if (storedTheme === 'comfort') {
+            root.classList.add('comfort');
+          } else if (storedTheme === 'system') {
+            if (sysDark) root.classList.add('dark'); else root.classList.add('comfort');
+          } else {
+            // Fallback default: comfort
+            root.classList.add('comfort');
+          }
+        } catch (e) {}
 
-      // On page load, apply font size from localStorage to avoid FOUC
-      const size = localStorage.getItem('fontSize') || 'base';
-      if (size === 'sm') {
-        document.documentElement.style.fontSize = '87.5%';
-      } else if (size === 'lg') {
-        document.documentElement.style.fontSize = '112.5%';
-      } else {
-        document.documentElement.style.fontSize = '100%';
-      }
+        const size = localStorage.getItem('fontSize') || 'base';
+        if (size === 'sm') {
+          document.documentElement.style.fontSize = '87.5%';
+        } else if (size === 'lg') {
+          document.documentElement.style.fontSize = '112.5%';
+        } else {
+          document.documentElement.style.fontSize = '100%';
+        }
+      })();
     </script>
   <!-- Tailwind is built via PostCSS; styles are imported from index.tsx -->
 </head>

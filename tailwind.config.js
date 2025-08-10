@@ -16,29 +16,38 @@ module.exports = {
         sans: ['Nunito Sans', 'sans-serif'],
       },
       colors: {
-        'brand-primary': '#AEC6FF',
-        'brand-secondary': '#C3B1E1',
-        'brand-secondary-dark': '#8A6BBE',
-        'brand-secondary-deep-dark': '#583C87',
-        'surface-main': '#FCFBF9',
-        'surface-card': '#FFFFFF',
-        'surface-header': '#F8F8F8',
-        'surface-table-header': '#F8F8F8',
-        'surface-input': '#F5F5F5',
-        'surface-hover': '#F0F4FF',
-        'surface-border': '#DDE1E6',
-        'text-primary': '#3D405B',
-        'text-secondary': '#8D99AE',
-        'text-tertiary': '#BCCCDC',
-        'text-on-color': '#3D405B',
-        'status-green': '#57C488',
-        'status-yellow': '#FFCA58',
-        'status-red': '#FF8080',
-        'brand-primary-light': '#EAF0FF',
-        'brand-secondary-light': '#F1EDF6',
-        'status-green-light': '#E4F6EB',
-        'status-yellow-light': '#FFF5DB',
-        'status-red-light': '#FFE5E5',
+  // Brand accents (kept soft for light mode)
+  'brand-primary': '#9EB8FF',
+  'brand-secondary': '#BFAEE6',
+  'brand-secondary-dark': '#8363B9',
+  'brand-secondary-deep-dark': '#5C3F8A',
+
+  // Light mode surfaces (reduced brightness and warmer neutrals)
+  'surface-main': '#F5F7FA',        // app background
+  'surface-card': '#FBFCFE',        // cards/panels
+  'surface-header': '#F2F4F8',      // headers, sticky bars
+  'surface-table-header': '#F2F4F8',
+  'surface-input': '#EFF2F6',       // inputs/selects
+  'surface-hover': '#EAF1FF',       // hover/tint
+  'surface-border': '#D6DEE8',      // softer, slightly darker border
+
+  // Text
+  'text-primary': '#2F3A4B',        // slightly darker for contrast on softer bg
+  'text-secondary': '#6B778C',
+  'text-tertiary': '#9DA8B8',
+  'text-on-color': '#243041',
+
+  // Status
+  'status-green': '#51BD85',
+  'status-yellow': '#F7C54A',
+  'status-red': '#FF7A7A',
+
+  // Tinted backgrounds for alerts
+  'brand-primary-light': '#E8EFFF',
+  'brand-secondary-light': '#F2EDFA',
+  'status-green-light': '#E6F6ED',
+  'status-yellow-light': '#FFF4DA',
+  'status-red-light': '#FFE7E7',
       },
     },
   },
