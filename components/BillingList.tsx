@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Billing, Student, PaymentMethod } from '../types';
 import { Card } from './Card';
 import { ICONS } from '../constants';
@@ -39,6 +39,7 @@ const Avatar: React.FC<{ student?: Student }> = ({ student }) => {
 export const BillingList: React.FC<BillingListProps> = ({ billings, students, onMarkAsPaid, onRecordPayment }) => {
   const { handleUpdateBilling, handleRecordPayment } = useApp();
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+  const [breakdownBill, setBreakdownBill] = useState<Billing | null>(null);
 
   const formatPHP = (amount: number) => `PHP ${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -393,6 +394,24 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
   const renderHistoryRow = (bill: Billing) => {
     const student = studentMap.get(bill.studentId);
     const effectiveAmount = bill.items && bill.items.length > 0 ? bill.items.reduce((s, it) => s + it.quantity * it.unitAmount, 0) : bill.amount;
+    const paidBy = summarizePayment(bill);
+    const paidIcon = (() => {
+      if (!paidBy) return null;
+      if (paidBy === 'Credit') return ICONS.payCredit;
+      if (paidBy.startsWith('Cash')) return ICONS.payCash;
+      if (paidBy.startsWith('BDO')) return ICONS.payBank;
+      if (paidBy.startsWith('GCash')) return ICONS.payGCash;
+      if (paidBy.startsWith('Mixed')) return ICONS.payMixed;
+      return ICONS.payOther;
+    })();
+    const paidColor = (() => {
+      if (!paidBy) return '';
+      if (paidBy === 'Credit') return 'text-violet-600 dark:text-violet-400';
+      if (paidBy.startsWith('Cash')) return 'text-emerald-600 dark:text-emerald-400';
+      if (paidBy.startsWith('BDO') || paidBy.startsWith('GCash')) return 'text-sky-600 dark:text-sky-400';
+      if (paidBy.startsWith('Mixed')) return 'text-amber-600 dark:text-amber-400';
+      return 'text-slate-500 dark:text-slate-400';
+    })();
     return (
       <tr key={bill.id} className="block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors">
         <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell">
@@ -411,12 +430,32 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
           {new Date(bill.dateIssued).toLocaleDateString()}
         </td>
         <td data-label="Status" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left">
-          <span className={`px-2 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
-              bill.status === 'paid' ? 'bg-status-green-light dark:bg-status-green/20 text-status-green' : 'bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow'
-          }`}>
-              {bill.status === 'paid' ? ICONS.paid : ICONS.unpaid}
-              <span className="ml-1 capitalize">{bill.status}</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
+                bill.status === 'paid' ? 'bg-status-green-light dark:bg-status-green/20 text-status-green' : 'bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow'
+            }`}>
+                {bill.status === 'paid' ? ICONS.paid : ICONS.unpaid}
+                <span className="ml-1 capitalize">{bill.status}</span>
+            </span>
+            {bill.status === 'paid' && paidBy ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600 text-[11px] text-text-secondary dark:text-slate-300">
+                  <span className={paidColor}>{paidIcon}</span>
+                  <span className="hidden md:inline">Paid by {paidBy}</span>
+                  <span className="md:hidden">{paidBy}</span>
+                </span>
+                <button
+                  type="button"
+                  title="View payment breakdown"
+                  aria-label="View payment breakdown"
+                  onClick={() => setBreakdownBill(bill)}
+                  className="p-1.5 rounded-full bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600 text-text-secondary hover:bg-surface-main dark:hover:bg-slate-700/60"
+                >
+                  {ICONS.info}
+                </button>
+              </span>
+            ) : null}
+          </div>
         </td>
       </tr>
     );
@@ -545,9 +584,47 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
         )}
       </Card>
 
+      {/* Payment Breakdown Modal */}
+      {breakdownBill && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Payment breakdown" onClick={() => setBreakdownBill(null)}>
+          <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <Card>
+              <div className="p-4 sm:p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-text-primary dark:text-slate-100">Payment Breakdown</h3>
+                    <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">Invoice ID: {breakdownBill.id} • {breakdownBill.studentName}</p>
+                  </div>
+                  <button onClick={() => setBreakdownBill(null)} className="text-sm px-3 py-1.5 rounded-md bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600">Close</button>
+                </div>
+                <div className="mt-4">
+                  {(!breakdownBill.payments || breakdownBill.payments.length === 0) ? (
+                    <div className="text-sm text-text-secondary dark:text-slate-400">No payments recorded.</div>
+                  ) : (
+                    <ul className="divide-y divide-surface-border dark:divide-slate-700">
+                      {breakdownBill.payments.map(p => (
+                        <li key={p.id} className="py-2 flex items-center justify-between text-sm">
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-text-primary dark:text-slate-100">{p.method}</div>
+                            <div className="text-[11px] text-text-tertiary dark:text-slate-400">{new Date(p.date).toLocaleString()}</div>
+                            {p.reference ? <div className="text-[11px] text-text-tertiary dark:text-slate-400">Ref: {p.reference}</div> : null}
+                            {p.note ? <div className="text-[11px] text-text-tertiary dark:text-slate-400">Note: {p.note}</div> : null}
+                          </div>
+                          <div className="font-semibold">{formatPHP(Number(p.amount)||0)}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Edit Invoice Modal */}
       {editingBill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Edit invoice" onClick={closeEditModal}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Edit invoice" onClick={closeEditModal}>
           <div className="w-full max-w-4xl" onClick={e => e.stopPropagation()}>
             <Card>
               <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
@@ -621,7 +698,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
       )}
       {/* Record Payment Modal */}
       {paymentBill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Record payment" onClick={closePaymentModal}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Record payment" onClick={closePaymentModal}>
           <div className="w-full max-w-xl" onClick={e => e.stopPropagation()}>
             <Card>
               <div className="p-4 sm:p-6">
@@ -678,13 +755,11 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                                   const vRaw = Number(e.target.value);
                                   const v = Math.max(0, Math.min(max, Math.min(remaining, vRaw)));
                                   setCreditToApply(v);
-                                  // Adjust money to not exceed remaining after credit
-                                  const moneyMax = Math.max(0, remaining - v);
-                                  setPayAmount(prev => Math.min(prev, moneyMax));
+                                  // Do not clamp payAmount here; overpayment is allowed and any excess converts to credit
                                 }} className="w-full bg-surface-input dark:bg-slate-700 border-surface-border dark:border-slate-600 rounded-md p-2" />
                               </label>
                               <div className="text-sm self-end">
-                                <div className="text-text-secondary">Remaining after credit:</div>
+                                <div className="text-text-secondary">Balance due after credit:</div>
                                 <div className="font-semibold">
                                   {(() => {
                                     const total = (paymentBill.items && paymentBill.items.length > 0)
@@ -705,7 +780,9 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                     return null;
                   })()}
                   <label className="text-sm">
-                    <span className="block mb-1 text-text-secondary">Amount</span>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-text-secondary">Amount</span>
+                    </div>
                     <input type="number" min={0} step="0.01" value={payAmount} onChange={e => {
                       const v = Math.max(0, Number(e.target.value));
                       setPayAmount(v);
@@ -773,3 +850,16 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
     </div>
   );
 };
+
+  // Helpers for payment breakdown
+  const summarizePayment = (bill: Billing): string | null => {
+    const payments = bill.payments || [];
+    if (!payments.length) return null;
+    const hasCredit = payments.some(p => p.method === 'Credit');
+    const nonCredit = Array.from(new Set(payments.filter(p => p.method !== 'Credit').map(p => p.method)));
+    if (nonCredit.length === 0) return 'Credit';
+    if (nonCredit.length === 1 && !hasCredit) return nonCredit[0];
+    if (nonCredit.length === 1 && hasCredit) return `${nonCredit[0]} + Credit`;
+    const base = `Mixed (${nonCredit.join(', ')})`;
+    return hasCredit ? `${base} + Credit` : base;
+  };

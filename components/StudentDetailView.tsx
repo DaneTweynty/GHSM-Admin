@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { Student, Lesson, Billing, Instructor } from '../types';
 import { Card } from './Card';
 import { useApp } from '../context/AppContext';
+import { ICONS } from '../constants';
 
 interface StudentDetailViewProps {
   student: Student;
@@ -124,6 +125,7 @@ const DetailItem: React.FC<{ label: string; value?: string | number; copiable?: 
 
 export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, lessons, billings, instructors }) => {
   const { handleMarkAttendance, handleUpdateStudentContact } = useApp();
+  const [showBreakdown, setShowBreakdown] = React.useState<null | { id: string }>(null);
   const instructorMap = useMemo(() => new Map<string, Instructor>(instructors.map(i => [i.id, i] as [string, Instructor])), [instructors]);
 
   const [isEditingContact, setIsEditingContact] = useState(false);
@@ -229,8 +231,8 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         )}
         <div className="text-xs text-text-tertiary dark:text-slate-400 mb-4">Last attendance: {lastAttendanceLabel}</div>
         <div className="space-y-2.5 text-sm text-left w-full border-t border-surface-border dark:border-slate-700 pt-4">
-            <div className="flex items-center justify-between mb-1">
-              <div className="font-semibold text-text-primary dark:text-slate-200">Contact</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] uppercase tracking-wide text-text-tertiary dark:text-slate-400">Contact</div>
               {!isEditingContact ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -316,9 +318,9 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
               </div>
             )}
 
-            <div className="pt-2.5 mt-2.5 border-t border-surface-border dark:border-slate-700">
-              <div className="flex items-center justify-between mb-1">
-                <div className="font-semibold text-text-primary dark:text-slate-200">Guardian Details</div>
+            <div className="pt-3 mt-3 border-t border-surface-border dark:border-slate-700">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] uppercase tracking-wide text-text-tertiary dark:text-slate-400">Guardian Details</div>
                 {!isEditingGuardian && (
                   <button
                     type="button"
@@ -485,23 +487,57 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                 <tr className="border-b border-surface-border dark:border-slate-700">
                   <th className="pb-2 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Date</th>
                   <th className="pb-2 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                  <th className="pb-2 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Status</th>
+                  <th className="pb-2 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Status / Paid By</th>
                 </tr>
               </thead>
               <tbody>
-                {pagedBills.map(bill => (
-                  <tr key={bill.id} className="border-b border-surface-border dark:border-slate-700 last:border-b-0">
-                    <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{new Date(bill.dateIssued).toLocaleDateString()}</td>
-                    <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{formatPHP(bill.amount)}</td>
-                    <td className="py-2 text-sm">
-                       <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
-                          bill.status === 'paid' ? 'bg-status-green-light dark:bg-status-green/20 text-status-green' : 'bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow'
-                      }`}>
-                          <span className="capitalize">{bill.status}</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {pagedBills.map(bill => {
+                  const payments = bill.payments || [];
+                  const hasCredit = payments.some(p => p.method === 'Credit');
+                  const nonCredit: string[] = Array.from(new Set((payments.filter(p => p.method !== 'Credit').map(p => p.method as string))));
+                  let paidBy: string | null = null;
+                  if (payments.length) {
+                    if (nonCredit.length === 0) paidBy = 'Credit';
+                    else if (nonCredit.length === 1 && !hasCredit) paidBy = nonCredit[0];
+                    else if (nonCredit.length === 1 && hasCredit) paidBy = `${nonCredit[0]} + Credit`;
+                    else paidBy = `Mixed (${nonCredit.join(', ')})${hasCredit ? ' + Credit' : ''}`;
+                  }
+                  const paidIcon = (() => {
+                    if (!paidBy) return null;
+                    if (paidBy === 'Credit') return ICONS.payCredit;
+                    if (paidBy.startsWith('Cash')) return ICONS.payCash;
+                    if (paidBy.startsWith('BDO')) return ICONS.payBank;
+                    if (paidBy.startsWith('GCash')) return ICONS.payGCash;
+                    if (paidBy.startsWith('Mixed')) return ICONS.payMixed;
+                    return ICONS.payOther;
+                  })();
+                  return (
+                    <tr key={bill.id} className="border-b border-surface-border dark:border-slate-700 last:border-b-0">
+                      <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{new Date(bill.dateIssued).toLocaleDateString()}</td>
+                      <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{formatPHP(bill.amount)}</td>
+                      <td className="py-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${
+                            bill.status === 'paid' ? 'bg-status-green-light dark:bg-status-green/20 text-status-green' : 'bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow'
+                          }`}>
+                            <span className="capitalize">{bill.status}</span>
+                          </span>
+                          {bill.status === 'paid' ? (
+                            <button
+                              type="button"
+                              title="View payment breakdown"
+                              aria-label="View payment breakdown"
+                              onClick={() => setShowBreakdown({ id: bill.id })}
+                              className="p-1.5 rounded-full bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600 text-text-secondary hover:bg-surface-main dark:hover:bg-slate-700/60"
+                            >
+                              {ICONS.info}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -532,6 +568,51 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           </div>
         )}
       </Card>
+
+      {/* Payment Breakdown Modal */}
+      {showBreakdown && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Payment breakdown" onClick={() => setShowBreakdown(null)}>
+          <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="rounded-xl border border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800 shadow-lg">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-text-primary dark:text-slate-100">Payment Breakdown</h3>
+                    {(() => {
+                      const bill = billings.find(b => b.id === showBreakdown.id);
+                      return bill ? (
+                        <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">Invoice ID: {bill.id} • {new Date(bill.dateIssued).toLocaleDateString()}</p>
+                      ) : null;
+                    })()}
+                  </div>
+                  <button onClick={() => setShowBreakdown(null)} className="text-sm px-3 py-1.5 rounded-md bg-surface-input dark:bg-slate-700 border border-surface-border dark:border-slate-600">Close</button>
+                </div>
+                <div className="mt-4">
+                  {(() => {
+                    const bill = billings.find(b => b.id === showBreakdown.id);
+                    if (!bill || !bill.payments || bill.payments.length === 0) return <div className="text-sm text-text-secondary dark:text-slate-400">No payments recorded.</div>;
+                    return (
+                      <ul className="divide-y divide-surface-border dark:divide-slate-700">
+                        {bill.payments.map(p => (
+                          <li key={p.id} className="py-2 flex items-center justify-between text-sm">
+                            <div className="space-y-0.5">
+                              <div className="font-medium text-text-primary dark:text-slate-100">{p.method}</div>
+                              <div className="text-[11px] text-text-tertiary dark:text-slate-400">{new Date(p.date).toLocaleString()}</div>
+                              {p.reference ? <div className="text-[11px] text-text-tertiary dark:text-slate-400">Ref: {p.reference}</div> : null}
+                              {p.note ? <div className="text-[11px] text-text-tertiary dark:text-slate-400">Note: {p.note}</div> : null}
+                            </div>
+                            <div className="font-semibold">{formatPHP(Number(p.amount)||0)}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
