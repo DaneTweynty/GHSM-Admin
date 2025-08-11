@@ -1,0 +1,543 @@
+{
+  "provinces": [
+    {
+      "code": "1263",
+      "name": "South Cotabato",
+      "region": "Region XII (SOCCSKSARGEN)",
+      "regionCode": "12",
+      "psgcCode": "126300000"
+    },
+    {
+      "code": "0137",
+      "name": "Metro Manila",
+      "region": "National Capital Region (NCR)",
+      "regionCode": "13",
+      "psgcCode": "137400000"
+    },
+    {
+      "code": "0421",
+      "name": "Cavite",
+      "region": "Region IV-A (CALABARZON)",
+      "regionCode": "04",
+      "psgcCode": "042100000"
+    },
+    {
+      "code": "0434",
+      "name": "Laguna",
+      "region": "Region IV-A (CALABARZON)",
+      "regionCode": "04",
+      "psgcCode": "043400000"
+    },
+    {
+      "code": "0456",
+      "name": "Batangas",
+      "region": "Region IV-A (CALABARZON)",
+      "regionCode": "04",
+      "psgcCode": "045600000"
+    },
+    {
+      "code": "0515",
+      "name": "Quezon",
+      "region": "Region IV-A (CALABARZON)",
+      "regionCode": "04",
+      "psgcCode": "051500000"
+    },
+    {
+      "code": "0669",
+      "name": "Rizal",
+      "region": "Region IV-A (CALABARZON)",
+      "regionCode": "04",
+      "psgcCode": "066900000"
+    },
+    {
+      "code": "1041",
+      "name": "Bulacan",
+      "region": "Region III (Central Luzon)",
+      "regionCode": "03",
+      "psgcCode": "104100000"
+    }
+  ],
+  "cities": [
+    {
+      "code": "126301",
+      "name": "Banga",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302",
+      "name": "General Santos City",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126303",
+      "name": "Koronadal City",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126304",
+      "name": "Lake Sebu",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126305",
+      "name": "Norala",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126306",
+      "name": "Polomolok",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126307",
+      "name": "Santo Niño",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126308",
+      "name": "Surallah",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126309",
+      "name": "T'Boli",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126310",
+      "name": "Tampakan",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126311",
+      "name": "Tantangan",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126312",
+      "name": "Tupi",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "137401",
+      "name": "Caloocan City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137402",
+      "name": "Las Piñas City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403",
+      "name": "Makati City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137404",
+      "name": "Malabon City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137405",
+      "name": "Mandaluyong City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137406",
+      "name": "Manila",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137407",
+      "name": "Marikina City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137408",
+      "name": "Muntinlupa City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137409",
+      "name": "Navotas City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137410",
+      "name": "Parañaque City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137411",
+      "name": "Pasay City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137412",
+      "name": "Pasig City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137413",
+      "name": "Pateros",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414",
+      "name": "Quezon City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137415",
+      "name": "San Juan City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137416",
+      "name": "Taguig City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137417",
+      "name": "Valenzuela City",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "042101",
+      "name": "Alfonso",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042102",
+      "name": "Amadeo",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042103",
+      "name": "Bacoor",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042104",
+      "name": "Carmona",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042105",
+      "name": "Cavite City",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042106",
+      "name": "Dasmariñas",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042107",
+      "name": "General Emilio Aguinaldo",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042108",
+      "name": "General Mariano Alvarez",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042109",
+      "name": "General Trias",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042110",
+      "name": "Imus",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    }
+  ],
+  "barangays": [
+    {
+      "code": "126301001",
+      "name": "Poblacion",
+      "cityCode": "126301",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126301002",
+      "name": "Libertad",
+      "cityCode": "126301",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126301003",
+      "name": "Sandawa",
+      "cityCode": "126301",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126301004",
+      "name": "Tubuan",
+      "cityCode": "126301",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302001",
+      "name": "Apopong",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302002",
+      "name": "Baluan",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302003",
+      "name": "Buayan",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302004",
+      "name": "Bula",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302005",
+      "name": "Calumpang",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302006",
+      "name": "City Heights",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302007",
+      "name": "Conel",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302008",
+      "name": "Dadiangas East",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302009",
+      "name": "Dadiangas North",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302010",
+      "name": "Dadiangas South",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "126302011",
+      "name": "Dadiangas West",
+      "cityCode": "126302",
+      "provinceCode": "1263",
+      "regionCode": "12"
+    },
+    {
+      "code": "137401001",
+      "name": "Bagbag",
+      "cityCode": "137401",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137401002",
+      "name": "Bagumbayan",
+      "cityCode": "137401",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137401003",
+      "name": "Bagumbuhay",
+      "cityCode": "137401",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137401004",
+      "name": "Baliwag",
+      "cityCode": "137401",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137401005",
+      "name": "Camarin",
+      "cityCode": "137401",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403001",
+      "name": "Bangkal",
+      "cityCode": "137403",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403002",
+      "name": "Bel-Air",
+      "cityCode": "137403",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403003",
+      "name": "Cembo",
+      "cityCode": "137403",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403004",
+      "name": "Comembo",
+      "cityCode": "137403",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137403005",
+      "name": "Dasmarinas Village",
+      "cityCode": "137403",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414001",
+      "name": "Alicia",
+      "cityCode": "137414",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414002",
+      "name": "Bagbag",
+      "cityCode": "137414",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414003",
+      "name": "Bagong Lipunan ng Crame",
+      "cityCode": "137414",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414004",
+      "name": "Bagong Pag-asa",
+      "cityCode": "137414",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "137414005",
+      "name": "Bagong Silangan",
+      "cityCode": "137414",
+      "provinceCode": "0137",
+      "regionCode": "13"
+    },
+    {
+      "code": "042103001",
+      "name": "Aniban I",
+      "cityCode": "042103",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042103002",
+      "name": "Aniban II",
+      "cityCode": "042103",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042103003",
+      "name": "Aniban III",
+      "cityCode": "042103",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042103004",
+      "name": "Aniban IV",
+      "cityCode": "042103",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    },
+    {
+      "code": "042103005",
+      "name": "Aniban V",
+      "cityCode": "042103",
+      "provinceCode": "0421",
+      "regionCode": "04"
+    }
+  ]
+}

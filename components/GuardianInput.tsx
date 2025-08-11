@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { control } from './ui';
-import { PhilippineAddressService, formatPhilippinePhone, validatePhilippinePhone } from '../services/philippineAddressService';
+import { formatPhilippinePhone, validatePhilippinePhone } from '../services/philippineAddressService';
 
 interface GuardianDetails {
   fullName?: string;
@@ -17,6 +17,13 @@ interface GuardianInputProps {
   onRemove?: () => void;
   disabled?: boolean;
   showRemoveButton?: boolean;
+  errors?: {
+    name?: string;
+    relationship?: string;
+    phone?: string;
+    email?: string;
+  };
+  onBlur?: (fieldName: string, value: string) => void;
 }
 
 const RELATIONSHIP_OPTIONS = [
@@ -41,7 +48,9 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
   onChange,
   onRemove,
   disabled = false,
-  showRemoveButton = false
+  showRemoveButton = false,
+  errors = {},
+  onBlur
 }) => {
   const [fullName, setFullName] = useState(guardian.fullName || '');
   const [relationship, setRelationship] = useState(guardian.relationship || '');
@@ -136,11 +145,14 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
             id={`${guardianType}-fullName`}
             value={fullName}
             onChange={(e) => handleFullNameChange(e.target.value)}
+            onBlur={(e) => onBlur?.(`${guardianType}GuardianName`, e.target.value)}
             className={inputClasses}
             placeholder="e.g., Maria Santos"
             disabled={disabled}
-            required={isRequired}
           />
+          {errors.name && (
+            <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.name}</div>
+          )}
         </div>
 
         {/* Relationship */}
@@ -152,15 +164,18 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
             id={`${guardianType}-relationship`}
             value={relationship}
             onChange={(e) => handleRelationshipChange(e.target.value)}
+            onBlur={(e) => onBlur?.(`${guardianType}GuardianRelationship`, e.target.value)}
             className={inputClasses}
             disabled={disabled}
-            required={isRequired}
           >
             <option value="">Select relationship...</option>
             {RELATIONSHIP_OPTIONS.map(option => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
+          {errors.relationship && (
+            <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.relationship}</div>
+          )}
         </div>
 
         {/* Phone Number */}
@@ -236,6 +251,13 @@ interface GuardianManagementProps {
   onSecondaryGuardianChange: (guardian: GuardianDetails | undefined) => void;
   disabled?: boolean;
   isMinor?: boolean;
+  errors?: {
+    primaryGuardianName?: string;
+    primaryGuardianRelationship?: string;
+    primaryGuardianPhone?: string;
+    primaryGuardianEmail?: string;
+  };
+  onBlur?: (fieldName: string, value: string) => void;
 }
 
 export const GuardianManagement: React.FC<GuardianManagementProps> = ({
@@ -244,7 +266,9 @@ export const GuardianManagement: React.FC<GuardianManagementProps> = ({
   onPrimaryGuardianChange,
   onSecondaryGuardianChange,
   disabled = false,
-  isMinor = false
+  isMinor = false,
+  errors = {},
+  onBlur
 }) => {
   const [showSecondaryGuardian, setShowSecondaryGuardian] = useState(!!secondaryGuardian);
 
@@ -273,6 +297,13 @@ export const GuardianManagement: React.FC<GuardianManagementProps> = ({
         guardian={primaryGuardian}
         onChange={onPrimaryGuardianChange}
         disabled={disabled}
+        onBlur={onBlur}
+        errors={{
+          name: errors.primaryGuardianName,
+          relationship: errors.primaryGuardianRelationship,
+          phone: errors.primaryGuardianPhone,
+          email: errors.primaryGuardianEmail
+        }}
       />
 
       {/* Secondary Guardian */}
