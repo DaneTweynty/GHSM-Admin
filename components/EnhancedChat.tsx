@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useChat } from '../hooks/useChat';
-import type { ChatMessage, ChatPreferences } from '../types';
+import type { ChatMessage } from '../types';
 import { 
   Send, 
   Paperclip, 
@@ -12,22 +12,16 @@ import {
   Image, 
   File, 
   Smile, 
-  MoreVertical,
   Search,
   Pin,
-  Archive,
   Trash2,
   Edit3,
   Forward,
-  Copy,
   Reply,
   Volume2,
-  VolumeX,
   Settings,
-  Languages,
   Shield,
   Eye,
-  EyeOff,
   Calendar,
   Download,
   Upload,
@@ -42,12 +36,9 @@ import {
   CheckCheck,
   Clock,
   AlertCircle,
-  Keyboard,
-  Accessibility,
   Moon,
   Sun,
-  Monitor,
-  Palette
+  Monitor
 } from 'lucide-react';
 
 interface EnhancedChatProps {
@@ -76,10 +67,10 @@ const MESSAGE_TEMPLATES = [
 
 export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   conversationId = 'default',
-  onConversationSelect,
+  onConversationSelect: _onConversationSelect,
   className = ''
 }) => {
-  const { theme, setThemeMode, handleThemeToggle } = useApp();
+  const { theme, setThemeMode } = useApp();
   const chat = useChat(conversationId);
   
   // UI State
@@ -92,7 +83,6 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
   const [showReactions, setShowReactions] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [isComposing, setIsComposing] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -152,9 +142,11 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
     };
 
     if (messageInputRef.current) {
-      messageInputRef.current.addEventListener('keydown', handleKeyDown);
-      return () => messageInputRef.current?.removeEventListener('keydown', handleKeyDown);
+      const currentRef = messageInputRef.current;
+      currentRef.addEventListener('keydown', handleKeyDown);
+      return () => currentRef.removeEventListener('keydown', handleKeyDown);
     }
+    return () => {}; // Return empty cleanup function when ref is not available
   }, [showEmojiPicker, chat]);
 
   // Message handlers
@@ -244,7 +236,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
   // Get current conversation messages
   const currentConversation = chat.conversations.find(conv => conv.id === conversationId);
-  const messages = currentConversation?.messages || [];
+  const messages = chat.messages || [];
 
   return (
     <div className={`flex flex-col h-full bg-surface-main ${className}`}>
@@ -315,7 +307,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg: ChatMessage) => (
           <div
             key={msg.id}
             className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
@@ -429,7 +421,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {msg.reactions.map((reaction, index) => (
+                      {msg.reactions.map((reaction: any, index: number) => (
                         <span
                           key={index}
                           className="text-xs bg-surface-100 dark:bg-surface-800 rounded-full px-2 py-1"

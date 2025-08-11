@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                   aria-haspopup="true"
                   aria-expanded={isSettingsOpen}
                 >
-                    {React.cloneElement<React.SVGProps<SVGSVGElement>>(ICONS.settings as React.ReactElement, { className: 'h-5 w-5' })}
+                    {React.cloneElement(ICONS.settings, { className: 'h-5 w-5' })}
                 </button>
         {isSettingsOpen && (
           <div className="absolute right-0 top-full mt-2 w-64 bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-lg z-50 py-1 origin-top-right animate-[scale-in_100ms_ease-out]">
@@ -134,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                                             }}
                                             className="w-full text-left px-4 py-2 text-text-primary dark:text-slate-200 bg-brand-primary-light dark:bg-brand-primary/20 hover:bg-brand-primary/30 transition-colors flex items-center space-x-3"
                                         >
-                                            {React.cloneElement<React.SVGProps<SVGSVGElement>>(ICONS.install as React.ReactElement, { className: 'h-4 w-4' })}
+                                            {React.cloneElement(ICONS.install, { className: 'h-4 w-4' })}
                                             <span>Install App</span>
                                         </button>
                                     </li>
@@ -178,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                                     }}
                                     className="w-full text-left px-4 py-2 text-text-primary dark:text-slate-200 hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors flex items-center space-x-3"
                                 >
-                                    {React.cloneElement<React.SVGProps<SVGSVGElement>>(ICONS.trash as React.ReactElement, { className: 'h-4 w-4' })}
+                                    {React.cloneElement(ICONS.trash, { className: 'h-4 w-4' })}
                                     <span>View Trash</span>
                                 </button>
                             </li>
@@ -245,7 +245,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                         }}
                         className="flex items-center space-x-3 px-4 py-2.5 text-base w-full text-text-primary dark:text-slate-200 bg-brand-primary-light dark:bg-brand-primary/20 hover:bg-black/5 dark:hover:bg-brand-primary/30 rounded-md"
                     >
-                        {React.cloneElement<React.SVGProps<SVGSVGElement>>(ICONS.install as React.ReactElement, { className: 'h-6 w-6' })}
+                        {React.cloneElement(ICONS.install, { className: 'h-6 w-6' })}
                         <span>Install App</span>
                     </button>
                 )}

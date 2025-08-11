@@ -5,6 +5,8 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { TrashZone } from './components/TrashZone';
+import ErrorBoundary from './components/ErrorBoundary';
+import { CardSkeleton } from './components/LoadingSkeletons';
 
 // Lazy-load pages for route-level code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -84,14 +86,23 @@ const AppShell: React.FC = () => {
       {view === 'chat' ? (
         // Chat page takes full remaining height (viewport height minus header)
         <div className="h-[calc(100vh-4rem)]">
-          <Suspense fallback={<div className="flex justify-center items-center h-96"><LoadingSpinner /></div>}>
+          <Suspense fallback={
+            <div className="flex justify-center items-center h-96">
+              <CardSkeleton lines={4} />
+            </div>
+          }>
             <ChatPage instructors={activeInstructors} />
           </Suspense>
         </div>
       ) : (
         // Other pages use full width with responsive padding
         <main className="p-4 sm:p-6 lg:p-8 w-full">
-          <Suspense fallback={<div className="flex justify-center items-center h-96"><LoadingSpinner /></div>}>
+          <Suspense fallback={
+            <div className="grid gap-6">
+              <CardSkeleton lines={3} />
+              <CardSkeleton lines={5} />
+            </div>
+          }>
             {renderContent()}
           </Suspense>
         </main>
@@ -141,9 +152,11 @@ const AppShell: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <AppProvider>
-    <AppShell />
-  </AppProvider>
+  <ErrorBoundary>
+    <AppProvider>
+      <AppShell />
+    </AppProvider>
+  </ErrorBoundary>
 );
 
 export default App;

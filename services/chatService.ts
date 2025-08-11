@@ -216,7 +216,7 @@ class ChatService {
 
   async stopVoiceRecording(recorder: MediaRecorder): Promise<Blob> {
     return new Promise((resolve) => {
-      const chunks: BlobPart[] = [];
+      const chunks: Blob[] = [];
       
       recorder.ondataavailable = (event) => {
         chunks.push(event.data);

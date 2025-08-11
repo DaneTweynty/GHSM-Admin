@@ -1,0 +1,1 @@
+import{j as r,h as s}from"./chat-Vz45qIYd.js";import"./ui-CcSG_NNb.js";import"./vendor-DEQ385Nk.js";import"./calendar-CdK-zQpj.js";const t={id:"admin-1",name:"Admin",type:"admin"},i=({instructors:i})=>r.jsx(s,{instructors:i,currentUser:t});export{i as ChatPage};

@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import type { Lesson, Instructor, Student } from '../types';
 import { ROOM_COUNT, ICONS, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, toMinutes, to12Hour, toHHMM } from '../utils/time';
-import { Card } from './Card';
 import { control, selectIconless } from './ui';
 import ThemedSelect from './ThemedSelect';
 
@@ -265,7 +264,15 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
   const selectWithIconClasses = selectIconless;
 
   // Inline Time Picker Popover (minute-precise, keyboard + a11y)
-  const TimePickerPopover: React.FC<{ value: string; onChange: (v: string) => void; onClose: () => void; presets?: Array<{ label: string; hh: number; mm: number; ampm: 'AM'|'PM' }>; anchorRef?: React.RefObject<HTMLButtonElement>; portalRoot?: React.RefObject<HTMLElement>; scrollParentRef?: React.RefObject<HTMLElement> }>
+  const TimePickerPopover: React.FC<{ 
+    value: string; 
+    onChange: (v: string) => void; 
+    onClose: () => void; 
+    presets?: Array<{ label: string; hh: number; mm: number; ampm: 'AM'|'PM' }>; 
+    anchorRef?: React.RefObject<HTMLButtonElement | null>; 
+    portalRoot?: React.RefObject<HTMLElement | null>; 
+    scrollParentRef?: React.RefObject<HTMLElement | null> 
+  }>
     = ({ value, onChange, onClose, presets = [], anchorRef, portalRoot, scrollParentRef }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
@@ -276,8 +283,6 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
       const btn = anchorRef?.current;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      const scrollParent = scrollParentRef?.current;
-      const scrollTop = scrollParent ? scrollParent.scrollTop : 0;
       
       // Calculate position relative to viewport
       let left = rect.left + (rect.width / 2) - (width / 2); // center under trigger
@@ -303,7 +308,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
         window.removeEventListener('scroll', onWin, true);
         sc?.removeEventListener('scroll', onWin as any);
       };
-    }, []);
+    }, [computePos, scrollParentRef]);
     const [ampm, setAmpm] = useState<'AM'|'PM'>(() => (toMinutes(value) >= 12*60 ? 'PM' : 'AM'));
     const mins = toMinutes(value);
     let h24 = Math.floor(mins / 60);

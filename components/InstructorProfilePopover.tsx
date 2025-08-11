@@ -9,7 +9,7 @@ interface InstructorProfilePopoverProps {
   lessons: Lesson[];
   isOpen: boolean;
   onClose: () => void;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 const getInitials = (name: string) => {
@@ -93,6 +93,7 @@ export const InstructorProfilePopover: React.FC<InstructorProfilePopoverProps> =
       };
     } else {
       setAppeared(false);
+      return undefined; // Explicit return for else case
     }
   }, [isOpen]);
 

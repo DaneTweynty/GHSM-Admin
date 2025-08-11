@@ -33,9 +33,10 @@ const getHeaderText = (view: CalendarView, date: Date): string => {
     switch(view) {
         case 'year':
             return `${year}`;
-        case 'month':
+        case 'month': {
             return `${monthName} ${year}`;
-        case 'week':
+        }
+        case 'week': {
             const startOfWeek = new Date(date);
             startOfWeek.setDate(date.getDate() - date.getDay());
             const endOfWeek = new Date(startOfWeek);
@@ -46,8 +47,10 @@ const getHeaderText = (view: CalendarView, date: Date): string => {
             } else {
                 return `${MONTH_NAMES[startOfWeek.getMonth()]} ${startOfWeek.getDate()} - ${MONTH_NAMES[endOfWeek.getMonth()]} ${endOfWeek.getDate()}, ${year}`;
             }
-        case 'day':
+        }
+        case 'day': {
             return `${monthName} ${date.getDate()}, ${year}`;
+        }
     }
 }
 

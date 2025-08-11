@@ -51,7 +51,7 @@ export const TrashPage: React.FC<TrashPageProps> = ({ deletedLessons, students, 
                   <div>
                     <p className="font-semibold text-text-primary dark:text-slate-100">{student?.name || 'Unknown Student'}</p>
                     <p className="text-sm text-text-secondary dark:text-slate-400">
-                      {new Date(lesson.date.replace(/-/g, '\/')).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                      {new Date(lesson.date.replace(/-/g, '/')).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                       {' at '}
                       {lesson.time}
                       {' with '}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Lesson, Student, Instructor } from '../types';
-import { TIME_SLOTS, DAYS_OF_WEEK_SHORT, DAYS_OF_WEEK_FULL, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
+import { TIME_SLOTS, DAYS_OF_WEEK_SHORT, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, roundToQuarter, toMinutes, toHHMM, to12Hour } from '../utils/time';
 
 interface WeekViewProps {
@@ -17,13 +17,6 @@ interface WeekViewProps {
 const NoteIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-  </svg>
-);
-
-const LunchIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.993.883L4 8v9a1 1 0 001 1h10a1 1 0 001-1V8l-.007-.117A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm-2 4V6a2 2 0 114 0v1H8z" />
-    <path d="M5 11h10a1 1 0 010 2H5a1 1 0 010-2z" />
   </svg>
 );
 
@@ -149,11 +142,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   }, [lessonsForWeek, weekDates]);
 
   const today = new Date();
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = e.altKey ? 'copy' : 'move';
-  };
 
   const handleColumnDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();

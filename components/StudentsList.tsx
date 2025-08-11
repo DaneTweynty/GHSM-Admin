@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { control } from './ui';
 import type { Student, Instructor, Lesson, Billing } from '../types';
 import { Card } from './Card';
@@ -16,9 +16,10 @@ interface StudentsListProps {
 }
 
 const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    const names = name.split(' ').filter(Boolean);
+    if (names.length === 0) return 'N/A';
+    if (names.length === 1) return names[0]!.charAt(0).toUpperCase();
+    return (names[0]!.charAt(0) + names[names.length - 1]!.charAt(0)).toUpperCase();
 }
 
 const Avatar: React.FC<{ student: Student }> = ({ student }) => {
@@ -42,9 +43,9 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleToggleDetails = (studentId: string) => {
+  const handleToggleDetails = useCallback((studentId: string) => {
     setExpandedStudentId(prevId => (prevId === studentId ? null : studentId));
-  };
+  }, []);
 
   const filteredStudents = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -102,7 +103,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
               const hasLessonToday = lessons.some(lesson => 
                 lesson.studentId === student.id && 
                 lesson.date === today && 
-                lesson.status === 'active'
+                lesson.status === 'scheduled'
               );
 
               const now = Date.now();
@@ -231,3 +232,5 @@ export const StudentsList: React.FC<StudentsListProps> = ({ students, instructor
     </Card>
   );
 };
+
+export default React.memo(StudentsList);

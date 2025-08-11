@@ -1,0 +1,81 @@
+{
+  "students": [
+    {
+      "studentIdNumber": "100001",
+      "name": "Alex Chen",
+      "instrument": "Piano",
+      "age": 14,
+      "email": "alex.chen@example.com",
+      "contactNumber": "(555) 123-4567",
+      "guardianName": "David Chen",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=AlexChen"
+    },
+    {
+      "studentIdNumber": "100002",
+      "name": "Brenda Smith",
+      "instrument": "Guitar",
+      "age": 22,
+      "email": "brenda.smith@example.com",
+      "contactNumber": "(555) 987-6543",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=BrendaSmith"
+    },
+    {
+      "studentIdNumber": "100003",
+      "name": "Chloe Kim",
+      "instrument": "Violin",
+      "age": 9,
+      "email": "chloe.kim@example.com",
+      "contactNumber": "(555) 234-5678",
+      "guardianName": "Eun-Jeong Kim",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=ChloeKim"
+    },
+    {
+      "studentIdNumber": "100004",
+      "name": "David Rodriguez",
+      "instrument": "Drums",
+      "age": 17,
+      "email": "david.r@example.com",
+      "contactNumber": "(555) 876-5432",
+      "guardianName": "Maria Rodriguez",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=DavidRodriguez"
+    }
+  ],
+  "instructors": [
+    {
+      "name": "Dr. Eleanor Vance",
+      "specialty": ["Piano", "Violin"],
+      "email": "eleanor.vance@musicschool.com",
+      "phone": "(555) 101-1001",
+      "bio": "Classical pianist and violinist with 20+ years of experience. PhD in Music Performance from Juilliard.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=EleanorVance"
+    },
+    {
+      "name": "Marco Diaz",
+      "specialty": ["Guitar", "Bass Guitar", "Ukulele"],
+      "email": "marco.diaz@musicschool.com",
+      "phone": "(555) 102-1002",
+      "bio": "Professional guitarist with expertise in multiple string instruments. Specializes in contemporary and folk music.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=MarcoDiaz"
+    },
+    {
+      "name": "Samira Al-Jamil",
+      "specialty": ["Violin", "Voice"],
+      "email": "samira.aljamil@musicschool.com", 
+      "phone": "(555) 103-1003",
+      "bio": "Trained opera singer and accomplished violinist. Brings a multicultural approach to music education.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=SamiraAlJamil"
+    },
+    {
+      "name": "Kenji Tanaka",
+      "specialty": ["Drums"],
+      "email": "kenji.tanaka@musicschool.com",
+      "phone": "(555) 104-1004", 
+      "bio": "Jazz drummer with extensive touring experience. Expert in both traditional and modern drumming techniques.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=KenjiTanaka"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ADMIN_PASSWORD } from '../constants';
-import { control } from './ui';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
@@ -9,10 +8,9 @@ interface AdminAuthModalProps {
   actionDescription: string;
 }
 
-export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose, onSuccess, actionDescription }) => {
+export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,18 +33,18 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
 
   return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-surface-card dark:bg-slate-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
         {/* Fixed Header */}
         <div className="flex-shrink-0 mb-4">
-          <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-white">Admin Authentication</h2>
-          <p className="text-gray-600 dark:text-gray-300">Please enter the admin password to continue</p>
+          <h2 className="text-2xl font-bold mb-2 text-text-primary dark:text-slate-200">Admin Authentication</h2>
+          <p className="text-text-secondary dark:text-slate-400">Please enter the admin password to continue</p>
         </div>
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto thin-scroll">
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-text-primary dark:text-slate-300 mb-1">
                 Password
               </label>
               <input
@@ -71,7 +69,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+              className="px-4 py-2 text-text-secondary dark:text-slate-400 bg-surface-card dark:bg-slate-700 hover:bg-surface-hover dark:hover:bg-slate-600 rounded-md transition-colors"
             >
               Cancel
             </button>

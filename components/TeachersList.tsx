@@ -16,9 +16,10 @@ interface TeachersListProps {
 }
 
 const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    const names = name.split(' ').filter(Boolean);
+    if (names.length === 0) return 'N/A';
+    if (names.length === 1) return names[0]!.charAt(0).toUpperCase();
+    return (names[0]!.charAt(0) + names[names.length - 1]!.charAt(0)).toUpperCase();
 };
 
 const InstructorAvatar: React.FC<{ instructor: Instructor }> = ({ instructor }) => {
@@ -54,13 +55,6 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
 
   const handleCloseProfile = () => {
     setProfilePopoverInstructorId(null);
-  };
-
-  const formatSpecialties = (specialty: string | string[]): string => {
-    if (Array.isArray(specialty)) {
-      return specialty.join(', ');
-    }
-    return specialty || '';
   };
 
   return (
@@ -103,7 +97,11 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
                                       <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                   </button>
                                   <button
-                                    ref={el => infoButtonRefs.current[instructor.id] = el}
+                                    ref={el => {
+                                      if (el) {
+                                        infoButtonRefs.current[instructor.id] = el;
+                                      }
+                                    }}
                                     onClick={(e) => handleShowProfile(instructor.id, e)}
                                     className="ml-2 p-1 rounded-full text-text-tertiary hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
                                     aria-label={`View ${instructor.name} profile`}
@@ -200,10 +198,12 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
             lessons={lessons}
             isOpen={true}
             onClose={handleCloseProfile}
-            anchorRef={{ current: infoButtonRefs.current[profilePopoverInstructorId] }}
+            anchorRef={{ current: infoButtonRefs.current[profilePopoverInstructorId] || null }}
           />
         </>
       )}
     </Card>
   );
 };
+
+export default React.memo(TeachersList);

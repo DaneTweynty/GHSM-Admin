@@ -2,19 +2,39 @@ export interface Student {
   id: string;
   studentIdNumber: string;
   name: string;
+  nickname?: string; // New field for nickname
+  birthdate?: string; // New field for birthdate (ISO string)
   instrument: string;
   sessionsAttended: number;
   sessionsBilled: number;
   creditBalance?: number; // positive PHP balance carried forward
   instructorId?: string;
-  age?: number;
+  age?: number; // This will be auto-calculated from birthdate
   email?: string;
-  contactNumber?: string;
+  contactNumber?: string; // Made optional as per requirement
+  // Enhanced address fields
+  address?: {
+    country?: string;
+    province?: string;
+    city?: string;
+    barangay?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+  };
+  // Enhanced guardian/parent details
   guardianName?: string;
   guardianFullName?: string;
-  guardianPhone?: string;
+  guardianPhone?: string; // Made optional as per requirement
   guardianEmail?: string;
   guardianFacebook?: string;
+  // Additional parent/guardian for cases where there are multiple guardians
+  secondaryGuardian?: {
+    fullName?: string;
+    relationship?: string; // e.g., 'Mother', 'Father', 'Aunt', 'Grandmother'
+    phone?: string; // Optional as per requirement
+    email?: string;
+    facebook?: string;
+  };
   facebook?: string; // Student's Facebook account or link
   gender?: 'Male' | 'Female';
   status: 'active' | 'inactive';

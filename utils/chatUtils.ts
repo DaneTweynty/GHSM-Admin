@@ -42,7 +42,9 @@ export class ChatCache {
   set(key: string, value: any): void {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, {
       value,
@@ -229,7 +231,7 @@ export const validateFile = (file: File): { valid: boolean; error?: string } => 
 
 // Image/Video editing utilities
 export const resizeImage = (file: File, maxWidth: number, maxHeight: number, quality: number = 0.8): Promise<Blob> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
     const img = new Image();
@@ -240,7 +242,13 @@ export const resizeImage = (file: File, maxWidth: number, maxHeight: number, qua
       canvas.height = img.height * ratio;
       
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(resolve, 'image/jpeg', quality);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      }, 'image/jpeg', quality);
     };
     
     img.src = URL.createObjectURL(file);

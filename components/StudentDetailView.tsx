@@ -76,13 +76,6 @@ const CopyIcon = () => (
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
   </svg>
 );
-const ExternalIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M18 3h3v3"></path>
-    <path d="M10 14L21 3"></path>
-    <path d="M21 10v11H3V3h11"></path>
-  </svg>
-);
 const CheckIcon = () => (
   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -212,6 +205,9 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         </div>
         <h3 className="text-lg font-bold text-text-primary dark:text-slate-100 flex items-center gap-2">
           {student.name}
+          {student.nickname && (
+            <span className="text-sm font-normal text-text-secondary dark:text-slate-400">"{student.nickname}"</span>
+          )}
           {isMinor ? (
             <span className="text-xs px-2 py-0.5 rounded-full bg-status-yellow-light dark:bg-status-yellow/20 text-status-yellow">Minor</span>
           ) : (
@@ -219,7 +215,16 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           )}
         </h3>
         <p className="text-sm text-text-secondary dark:text-slate-400 mb-1">ID: {student.studentIdNumber}</p>
-        <p className="text-sm text-text-secondary dark:text-slate-400 mb-2">{student.instrument}</p>
+        <p className="text-sm text-text-secondary dark:text-slate-400 mb-1">{student.instrument}</p>
+        {/* Enhanced Age and Birthdate Information */}
+        {student.birthdate ? (
+          <div className="text-sm text-text-secondary dark:text-slate-400 mb-2">
+            <p>Birthdate: {new Date(student.birthdate).toLocaleDateString()}</p>
+            <p>Age: {student.age || 'N/A'} years old</p>
+          </div>
+        ) : student.age ? (
+          <p className="text-sm text-text-secondary dark:text-slate-400 mb-2">Age: {student.age} years old</p>
+        ) : null}
         {student.creditBalance && student.creditBalance > 0 && (
           <div className="mb-3">
             <span className="inline-flex items-center gap-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-status-green-light dark:bg-status-green/20 text-status-green">
@@ -233,8 +238,9 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         )}
         <div className="text-xs text-text-tertiary dark:text-slate-400 mb-4">Last attendance: {lastAttendanceLabel}</div>
         <div className="space-y-2.5 text-sm text-left w-full border-t border-surface-border dark:border-slate-700 pt-4">
+            {/* Enhanced Contact Information */}
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[11px] uppercase tracking-wide text-text-tertiary dark:text-slate-400">Contact</div>
+              <div className="text-[11px] uppercase tracking-wide text-text-tertiary dark:text-slate-400">Contact Information</div>
               {!isEditingContact ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -410,6 +416,95 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         </div>
       </Card>
 
+      {/* Enhanced Address Information Display */}
+      {student.address && (student.address.addressLine1 || student.address.province) && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold text-text-primary dark:text-slate-100">Address Information</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            {student.address.addressLine1 && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">Street:</span> {student.address.addressLine1}
+              </p>
+            )}
+            {student.address.addressLine2 && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">Address Line 2:</span> {student.address.addressLine2}
+              </p>
+            )}
+            {student.address.barangay && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">Barangay:</span> {student.address.barangay}
+              </p>
+            )}
+            {student.address.city && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">City/Municipality:</span> {student.address.city}
+              </p>
+            )}
+            {student.address.province && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">Province:</span> {student.address.province}
+              </p>
+            )}
+            {student.address.country && (
+              <p className="text-text-primary dark:text-slate-200">
+                <span className="font-medium">Country:</span> {student.address.country}
+              </p>
+            )}
+            {/* Complete Address */}
+            <div className="mt-3 p-2 bg-surface-subtle dark:bg-slate-800 rounded-md">
+              <p className="text-xs font-medium text-text-secondary dark:text-slate-400 mb-1">Complete Address:</p>
+              <p className="text-sm text-text-primary dark:text-slate-200">
+                {[
+                  student.address.addressLine1,
+                  student.address.addressLine2,
+                  student.address.barangay && `Barangay ${student.address.barangay}`,
+                  student.address.city,
+                  student.address.province,
+                  student.address.country
+                ].filter(Boolean).join(', ')}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Enhanced Guardian Information Display */}
+      {student.secondaryGuardian && (student.secondaryGuardian.fullName || student.secondaryGuardian.phone) && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold text-text-primary dark:text-slate-100">Secondary Guardian</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            {student.secondaryGuardian.fullName && (
+              <DetailItem label="Name" value={student.secondaryGuardian.fullName} />
+            )}
+            {student.secondaryGuardian.relationship && (
+              <DetailItem label="Relationship" value={student.secondaryGuardian.relationship} />
+            )}
+            {student.secondaryGuardian.phone && (
+              <DetailItem 
+                label="Phone" 
+                value={student.secondaryGuardian.phone} 
+                copiable={true}
+              />
+            )}
+            {student.secondaryGuardian.email && (
+              <DetailItem 
+                label="Email" 
+                value={student.secondaryGuardian.email} 
+                copiable={true}
+              />
+            )}
+            {student.secondaryGuardian.facebook && (
+              <DetailItem label="Facebook" value={student.secondaryGuardian.facebook} makeUrlIfHttp={true} />
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-4 flex flex-col h-full">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-text-primary dark:text-slate-100">Scheduled Lessons</h3>
@@ -434,7 +529,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
                 {pagedLessons.map(lesson => {
                   const instructor = instructorMap.get(lesson.instructorId);
                   // Use a regex replace to avoid timezone issues with `new Date()` from ISO string
-                  const lessonDate = new Date(lesson.date.replace(/-/g, '\/'));
+                  const lessonDate = new Date(lesson.date.replace(/-/g, '/'));
                   return (
                     <li key={lesson.id} className="p-3 bg-surface-main dark:bg-slate-700/50 rounded-md border border-surface-border dark:border-slate-700">
                       <p className="text-sm font-semibold text-text-primary dark:text-slate-200">{lessonDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} at {lesson.time}</p>
@@ -494,25 +589,6 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
               </thead>
               <tbody>
                 {pagedBills.map(bill => {
-                  const payments = bill.payments || [];
-                  const hasCredit = payments.some(p => p.method === 'Credit');
-                  const nonCredit: string[] = Array.from(new Set((payments.filter(p => p.method !== 'Credit').map(p => p.method as string))));
-                  let paidBy: string | null = null;
-                  if (payments.length) {
-                    if (nonCredit.length === 0) paidBy = 'Credit';
-                    else if (nonCredit.length === 1 && !hasCredit) paidBy = nonCredit[0];
-                    else if (nonCredit.length === 1 && hasCredit) paidBy = `${nonCredit[0]} + Credit`;
-                    else paidBy = `Mixed (${nonCredit.join(', ')})${hasCredit ? ' + Credit' : ''}`;
-                  }
-                  const paidIcon = (() => {
-                    if (!paidBy) return null;
-                    if (paidBy === 'Credit') return ICONS.payCredit;
-                    if (paidBy.startsWith('Cash')) return ICONS.payCash;
-                    if (paidBy.startsWith('BDO')) return ICONS.payBank;
-                    if (paidBy.startsWith('GCash')) return ICONS.payGCash;
-                    if (paidBy.startsWith('Mixed')) return ICONS.payMixed;
-                    return ICONS.payOther;
-                  })();
                   return (
                     <tr key={bill.id} className="border-b border-surface-border dark:border-slate-700 last:border-b-0">
                       <td className="py-2 text-sm text-text-secondary dark:text-slate-400">{new Date(bill.dateIssued).toLocaleDateString()}</td>

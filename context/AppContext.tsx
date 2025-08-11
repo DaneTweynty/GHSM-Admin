@@ -7,22 +7,35 @@ import { generateSchedules } from '../services/scheduleService';
 
 export type StudentEnrollmentData = {
   name: string;
+  nickname?: string;
+  birthdate?: string;
   instrument: string;
   instructorId: string;
   age: number;
-  email: string;
-  contactNumber: string;
+  email?: string;
+  contactNumber?: string;
   gender: 'Male' | 'Female';
-  // Student facebook (optional)
   facebook?: string;
-  guardianName?: string;
-  // Additional guardian details
+  address?: {
+    country?: string;
+    province?: string;
+    city?: string;
+    barangay?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+  };
   guardianFullName?: string;
   guardianPhone?: string;
   guardianEmail?: string;
   guardianFacebook?: string;
-  // Link to parent student for multi-instrument tracking
-  parentStudentId?: string;
+  secondaryGuardian?: {
+    fullName?: string;
+    relationship?: string;
+    phone?: string;
+    email?: string;
+    facebook?: string;
+  };
+  parentStudentId?: string; // Link to parent student for multi-instrument tracking
 };
 
 export type AdminAction = 
@@ -215,7 +228,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const entry: TransactionEntry = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, type, status, message, timestamp: Date.now(), meta };
     setTransactions(prev => {
       const next = [entry, ...prev].slice(0, 100);
-      try { localStorage.setItem('app:transactions', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('app:transactions', JSON.stringify(next)); } catch (error) {
+        // Ignore localStorage errors
+      }
       return next;
     });
     if (status === 'success') toast.success(message);
@@ -251,7 +266,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Store as ISO date to avoid TZ ambiguity on restore
     try {
       localStorage.setItem('app:currentDate', currentDate.toISOString());
-    } catch {}
+    } catch (error) {
+      // Ignore localStorage errors  
+    }
   }, [currentDate]);
 
   useEffect(() => {
@@ -267,7 +284,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     apply();
   // Persist the explicit theme selection (including 'system')
-  try { localStorage.setItem('theme', theme); } catch {}
+  try { localStorage.setItem('theme', theme); } catch (error) {
+    // Ignore localStorage errors
+  }
     let mql: MediaQueryList | null = null;
     if (theme === 'system' && window.matchMedia) {
       mql = window.matchMedia('(prefers-color-scheme: dark)');
@@ -278,6 +297,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mql.removeEventListener ? mql.removeEventListener('change', listener as any) : mql.removeListener(listener as any);
       };
     }
+    return () => {}; // Return empty cleanup function when not using system theme
   }, [theme]);
 
   useEffect(() => {
@@ -403,10 +423,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleRecordPayment = useCallback((billingId: string, payment: { amount: number; method: PaymentMethod; reference?: string; note?: string; overpayHandling?: 'next' | 'hold' }) => {
+    console.log('AppContext.handleRecordPayment called:', { billingId, amount: payment.amount, method: payment.method });
+    
     // If the payment method is Credit, ensure we don't exceed available credit; enforce later with UI as well.
     setBillings(prev => {
+      console.log('AppContext: Current billings before update:', prev.map(b => ({ id: b.id, status: b.status, paidAmount: b.paidAmount })));
+      
       const next = prev.map(b => {
         if (b.id !== billingId) return b;
+        
+        console.log('AppContext: Processing billing:', { id: b.id, currentStatus: b.status, currentPaidAmount: b.paidAmount, amount: b.amount });
+        
         const p: Payment = {
           id: `pay-${Date.now()}`,
           billingId: b.id,
@@ -420,9 +447,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
         const payments = [...(b.payments || []), p];
         const paidAmount = payments.reduce((s, it) => s + (Number(it.amount) || 0), 0);
-        const status = paidAmount >= b.amount ? 'paid' as const : 'unpaid';
-        return { ...b, payments, paidAmount, status };
+        const status: 'paid' | 'unpaid' = paidAmount >= b.amount ? 'paid' : 'unpaid';
+        
+        console.log('AppContext: Updated billing:', { 
+          id: b.id, 
+          newStatus: status, 
+          newPaidAmount: paidAmount, 
+          amount: b.amount,
+          paymentsCount: payments.length 
+        });
+        
+        return { ...b, payments, paidAmount, status } as Billing;
       });
+
+      console.log('AppContext: Next billings after update:', next.map(b => ({ id: b.id, status: b.status, paidAmount: b.paidAmount })));
 
       const updated = next.find(b => b.id === billingId);
       if (updated) {
@@ -682,21 +720,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       instructorId: studentData.instructorId,
       sessionsAttended: 0,
       sessionsBilled: 0,
+      nickname: studentData.nickname,
+      birthdate: studentData.birthdate,
       age: studentData.age,
       email: studentData.email,
       contactNumber: studentData.contactNumber,
-      // persist student's facebook if provided
       facebook: studentData.facebook,
       gender: studentData.gender,
-      guardianName: studentData.guardianName,
-      // Persist guardian details if provided
+      address: studentData.address,
       guardianFullName: studentData.guardianFullName,
       guardianPhone: studentData.guardianPhone,
       guardianEmail: studentData.guardianEmail,
       guardianFacebook: studentData.guardianFacebook,
+      secondaryGuardian: studentData.secondaryGuardian,
       status: 'active',
       profilePictureUrl: undefined,
-      // Link to parent student for multi-instrument tracking
       parentStudentId: studentData.parentStudentId,
     };
     setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)));

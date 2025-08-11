@@ -9,26 +9,19 @@ import {
   Pause, 
   Smile, 
   Reply, 
-  MoreVertical,
   Phone,
   Video,
   Info,
   Settings,
-  Volume2,
   Download,
   CheckCheck,
   Check,
   Clock,
   Circle,
   MessageSquare,
-  ThumbsUp,
-  Heart,
-  Laugh,
-  Frown,
   X
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import type { Instructor, ChatMessage, ChatConversation, MessageReaction } from '../types';
+import type { Instructor, ChatMessage, ChatConversation } from '../types';
 
 interface ImprovedChatProps {
   instructors: Instructor[];
@@ -41,25 +34,21 @@ interface ImprovedChatProps {
 
 // Common emojis for reactions
 const commonEmojis = [
-  { emoji: '👍', icon: ThumbsUp },
-  { emoji: '❤️', icon: Heart },
-  { emoji: '😂', icon: Laugh },
-  { emoji: '😢', icon: Frown },
+  { emoji: '👍', text: '👍' },
+  { emoji: '❤️', text: '❤️' },
+  { emoji: '😂', text: '😂' },
+  { emoji: '😢', text: '😢' },
   { emoji: '🎉', text: '🎉' },
   { emoji: '💯', text: '💯' }
 ];
 
 export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, currentUser }) => {
-  const { theme, setThemeMode, handleThemeToggle, fontSize, handleFontSizeChange } = useApp();
-  
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [messages, setMessages] = useState<{ [conversationId: string]: ChatMessage[] }>({});
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
-  const [isSearchMode, setIsSearchMode] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<{ [conversationId: string]: string[] }>({});
+  const [typingUsers] = useState<{ [conversationId: string]: string[] }>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -71,7 +60,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<number | null>(null);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -124,7 +113,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       setIsRecording(true);
       setRecordingTime(0);
       
-      recordingIntervalRef.current = setInterval(() => {
+      recordingIntervalRef.current = window.setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
       
@@ -284,7 +273,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       readBy: [currentUser.id],
       type: 'text',
       status: 'sent',
-      replyTo: replyingTo || undefined
+      ...(replyingTo && { replyTo: replyingTo })
     };
 
     setMessages(prev => ({
@@ -300,30 +289,25 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearchMode(false);
       return;
     }
 
-    const allMessages = Object.values(messages).flat() as ChatMessage[];
-    const results = allMessages.filter(msg =>
+    // Search functionality - in a full implementation, this could highlight results
+    Object.values(messages).flat().filter(msg =>
       msg.content.toLowerCase().includes(query.toLowerCase()) ||
       msg.senderName.toLowerCase().includes(query.toLowerCase())
     );
-    
-    setSearchResults(results);
-    setIsSearchMode(true);
   };
 
   // Get message status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'sending':
-        return <Clock className="w-3 h-3 text-text-tertiary" />;
+        return <Clock className="w-3 h-3 text-text-tertiary dark:text-slate-500" />;
       case 'sent':
-        return <Check className="w-3 h-3 text-text-tertiary" />;
+        return <Check className="w-3 h-3 text-text-tertiary dark:text-slate-500" />;
       case 'delivered':
-        return <CheckCheck className="w-3 h-3 text-text-tertiary" />;
+        return <CheckCheck className="w-3 h-3 text-text-tertiary dark:text-slate-500" />;
       case 'read':
         return <CheckCheck className="w-3 h-3 text-brand-primary" />;
       default:
@@ -333,7 +317,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
   return (
     <div 
-      className="flex h-full w-full bg-surface-main transition-colors duration-200"
+      className="flex h-full w-full bg-surface-main dark:bg-slate-900 transition-colors duration-200"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -349,30 +333,30 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       )}
 
       {/* Sidebar */}
-      <div className="w-80 border-r border-surface-border bg-surface-card flex flex-col h-full">
+      <div className="w-80 border-r border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800 flex flex-col h-full">
         {/* Header */}
-        <div className="p-4 border-b border-surface-border flex-shrink-0">
+        <div className="p-4 border-b border-surface-border dark:border-slate-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-text-primary">Messages</h2>
+            <h2 className="text-lg font-semibold text-text-primary dark:text-slate-200">Messages</h2>
             <div className="flex items-center space-x-2">
               <button
-                className="p-2 rounded-lg transition-colors hover:bg-surface-hover"
+                className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700"
                 title="Settings"
               >
-                <Settings className="w-4 h-4 text-text-secondary" />
+                <Settings className="w-4 h-4 text-text-secondary dark:text-slate-400" />
               </button>
             </div>
           </div>
           
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary dark:text-slate-500" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-surface-border bg-surface-input text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-surface-border dark:border-slate-600 bg-surface-input dark:bg-slate-700 text-text-primary dark:text-slate-200 placeholder-text-tertiary dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
             />
           </div>
         </div>
@@ -387,8 +371,8 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
               <div
                 key={conversation.id}
                 onClick={() => setActiveConversationId(conversation.id)}
-                className={`p-4 cursor-pointer border-b border-surface-border transition-colors hover:bg-surface-hover ${
-                  activeConversationId === conversation.id ? 'bg-brand-primary-light' : ''
+                className={`p-4 cursor-pointer border-b border-surface-border dark:border-slate-700 transition-colors hover:bg-surface-hover dark:hover:bg-slate-700 ${
+                  activeConversationId === conversation.id ? 'bg-brand-primary-light dark:bg-slate-600' : ''
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -399,17 +383,17 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                       </span>
                     </div>
                     {otherParticipant?.isOnline && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-status-green border-2 border-surface-card rounded-full"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-status-green border-2 border-surface-card dark:border-slate-800 rounded-full"></div>
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-text-primary truncate">
+                      <h3 className="font-medium text-text-primary dark:text-slate-200 truncate">
                         {otherParticipant?.name || 'Unknown'}
                       </h3>
                       {lastMessage && (
-                        <span className="text-xs text-text-tertiary">
+                        <span className="text-xs text-text-tertiary dark:text-slate-500">
                           {new Date(lastMessage.timestamp).toLocaleTimeString([], { 
                             hour: '2-digit', 
                             minute: '2-digit' 
@@ -419,7 +403,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-text-secondary truncate">
+                      <p className="text-sm text-text-secondary dark:text-slate-400 truncate">
                         {lastMessage ? (
                           lastMessage.type === 'voice' ? '🎵 Voice message' :
                           lastMessage.type === 'image' ? '📷 Image' :
@@ -435,14 +419,14 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                       )}
                     </div>
                     
-                    {typingUsers[conversation.id]?.length > 0 && (
+                    {typingUsers[conversation.id] && typingUsers[conversation.id]!.length > 0 && (
                       <div className="flex items-center space-x-1 mt-1">
                         <div className="flex space-x-1">
                           <Circle className="w-2 h-2 text-brand-primary animate-bounce" />
                           <Circle className="w-2 h-2 text-brand-primary animate-bounce delay-100" />
                           <Circle className="w-2 h-2 text-brand-primary animate-bounce delay-200" />
                         </div>
-                        <span className="text-xs text-text-tertiary">typing...</span>
+                        <span className="text-xs text-text-tertiary dark:text-slate-500">typing...</span>
                       </div>
                     )}
                   </div>
@@ -454,11 +438,11 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full bg-surface-main">
+      <div className="flex-1 flex flex-col h-full bg-surface-main dark:bg-slate-900">
         {activeConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-surface-border bg-surface-header flex items-center justify-between">
+            <div className="p-4 border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="relative">
                   <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center">
@@ -467,53 +451,53 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                     </span>
                   </div>
                   {activeConversation.participants.find(p => p.id !== currentUser.id)?.isOnline && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-status-green border-2 border-surface-header rounded-full"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-status-green border-2 border-surface-header dark:border-slate-800 rounded-full"></div>
                   )}
                 </div>
                 
                 <div>
-                  <h3 className="font-semibold text-text-primary">
+                  <h3 className="font-semibold text-text-primary dark:text-slate-200">
                     {activeConversation.participants.find(p => p.id !== currentUser.id)?.name || 'Unknown'}
                   </h3>
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-xs text-text-secondary dark:text-slate-400">
                     {activeConversation.participants.find(p => p.id !== currentUser.id)?.isOnline ? 'Online' : 'Offline'}
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center space-x-2">
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover">
-                  <Phone className="w-4 h-4 text-text-secondary" />
+                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                  <Phone className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover">
-                  <Video className="w-4 h-4 text-text-secondary" />
+                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                  <Video className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover">
-                  <Info className="w-4 h-4 text-text-secondary" />
+                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                  <Info className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
               </div>
             </div>
 
             {/* Reply Banner */}
             {replyingToMessage && (
-              <div className="p-3 border-b border-surface-border bg-surface-card">
+              <div className="p-3 border-b border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-1 h-8 bg-brand-primary rounded-full" />
                     <div>
-                      <p className="text-sm font-medium text-text-primary">
+                      <p className="text-sm font-medium text-text-primary dark:text-slate-200">
                         Replying to {replyingToMessage.senderName}
                       </p>
-                      <p className="text-xs text-text-secondary truncate max-w-xs">
+                      <p className="text-xs text-text-secondary dark:text-slate-400 truncate max-w-xs">
                         {replyingToMessage.content}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setReplyingTo(null)}
-                    className="p-1 hover:bg-surface-hover rounded"
+                    className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
                   >
-                    <X className="w-4 h-4 text-text-secondary" />
+                    <X className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                   </button>
                 </div>
               </div>
@@ -521,7 +505,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {activeMessages.map((message, index) => (
+              {activeMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'} group`}
@@ -530,13 +514,13 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
                       message.senderId === currentUser.id
                         ? 'bg-brand-primary text-text-on-color ml-auto'
-                        : 'bg-surface-card text-text-primary'
+                        : 'bg-surface-card dark:bg-slate-700 text-text-primary dark:text-slate-200'
                     }`}
                   >
                     {/* Reply reference */}
                     {message.replyTo && (
-                      <div className="mb-2 p-2 border-l-2 border-brand-secondary bg-brand-primary-light rounded">
-                        <p className="text-xs text-text-secondary">
+                      <div className="mb-2 p-2 border-l-2 border-brand-secondary bg-brand-primary-light dark:bg-slate-600 rounded">
+                        <p className="text-xs text-text-secondary dark:text-slate-300">
                           {activeMessages.find(m => m.id === message.replyTo)?.content || 'Original message'}
                         </p>
                       </div>
@@ -559,12 +543,12 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                                 audio.onended = () => setIsPlaying(prev => ({...prev, [message.id]: false}));
                               }
                             }}
-                            className="p-2 rounded-full bg-surface-hover"
+                            className="p-2 rounded-full bg-surface-hover dark:bg-slate-600"
                           >
                             {isPlaying[message.id] ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                           </button>
                           <div className="flex-1">
-                            <div className="w-20 h-1 bg-surface-border rounded-full">
+                            <div className="w-20 h-1 bg-surface-border dark:bg-slate-600 rounded-full">
                               <div className="w-4 h-1 bg-brand-primary rounded-full"></div>
                             </div>
                           </div>
@@ -582,10 +566,10 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                           <p className="text-sm">{message.content}</p>
                         </div>
                       ) : message.type === 'file' && message.fileData ? (
-                        <div className="flex items-center space-x-2 p-2 bg-surface-input rounded">
+                        <div className="flex items-center space-x-2 p-2 bg-surface-input dark:bg-slate-600 rounded">
                           <Paperclip className="w-4 h-4" />
                           <span className="text-sm flex-1">{message.fileData.name}</span>
-                          <button className="p-1 hover:bg-surface-hover rounded">
+                          <button className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded">
                             <Download className="w-3 h-3" />
                           </button>
                         </div>
@@ -596,7 +580,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
                     {/* Message actions */}
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-text-tertiary">
+                      <span className="text-xs text-text-tertiary dark:text-slate-500">
                         {new Date(message.timestamp).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit' 
@@ -610,7 +594,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                             <button
                               key={idx}
                               onClick={() => addReaction(message.id, reaction.emoji)}
-                              className="text-xs px-1 py-0.5 bg-surface-hover rounded"
+                              className="text-xs px-1 py-0.5 bg-surface-hover dark:bg-slate-600 rounded"
                             >
                               {reaction.emoji}
                             </button>
@@ -621,25 +605,29 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                         <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => setReplyingTo(message.id)}
-                            className="p-1 hover:bg-surface-hover rounded"
+                            className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
                           >
                             <Reply className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() => setShowEmojiPicker(showEmojiPicker === message.id ? null : message.id)}
-                            className="p-1 hover:bg-surface-hover rounded"
+                            className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
                           >
                             <Smile className="w-3 h-3" />
                           </button>
                         </div>
 
-                        {/* Status indicator */}
-                        {message.senderId === currentUser.id && getStatusIcon(message.status || 'sent')}
+                      {/* Status indicator */}
+                      {message.senderId === currentUser.id && (
+                        <div className="flex items-center space-x-1">
+                          {getStatusIcon(message.status || 'sent')}
+                        </div>
+                      )}
                       </div>
 
                       {/* Emoji picker */}
                       {showEmojiPicker === message.id && (
-                        <div className="absolute bottom-full right-0 mb-2 p-2 bg-surface-card border border-surface-border rounded-lg shadow-lg z-10">
+                        <div className="absolute bottom-full right-0 mb-2 p-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg z-10">
                           <div className="flex space-x-1">
                             {commonEmojis.map((emojiData) => (
                               <button
@@ -648,9 +636,9 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                                   addReaction(message.id, emojiData.emoji);
                                   setShowEmojiPicker(null);
                                 }}
-                                className="p-1 hover:bg-surface-hover rounded"
+                                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
                               >
-                                {emojiData.text || <emojiData.icon className="w-4 h-4" />}
+                                {emojiData.text}
                               </button>
                             ))}
                           </div>
@@ -661,13 +649,13 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                 </div>
               ))}
               
-              {typingUsers[activeConversationId]?.length > 0 && (
+              {activeConversationId && typingUsers[activeConversationId] && typingUsers[activeConversationId]!.length > 0 && (
                 <div className="flex justify-start">
-                  <div className="bg-surface-card px-4 py-2 rounded-lg">
+                  <div className="bg-surface-card dark:bg-slate-700 px-4 py-2 rounded-lg">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-text-tertiary rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-text-tertiary rounded-full animate-bounce delay-100" />
-                      <div className="w-2 h-2 bg-text-tertiary rounded-full animate-bounce delay-200" />
+                      <div className="w-2 h-2 bg-text-tertiary dark:bg-slate-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-text-tertiary dark:bg-slate-400 rounded-full animate-bounce delay-100" />
+                      <div className="w-2 h-2 bg-text-tertiary dark:bg-slate-400 rounded-full animate-bounce delay-200" />
                     </div>
                   </div>
                 </div>
@@ -677,22 +665,22 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-surface-border bg-surface-header">
+            <div className="p-4 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800">
               <div className="flex items-end space-x-2">
                 {/* Attachment button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 rounded-lg hover:bg-surface-hover transition-colors"
+                  className="p-2 rounded-lg hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
                   aria-label="Attach file"
                 >
-                  <Paperclip className="w-5 h-5 text-text-secondary" />
+                  <Paperclip className="w-5 h-5 text-text-secondary dark:text-slate-400" />
                 </button>
 
                 {/* Voice message button */}
                 <button
                   onClick={() => isRecording ? stopRecording() : startRecording()}
                   className={`p-2 rounded-lg transition-colors ${
-                    isRecording ? 'bg-status-red text-white' : 'hover:bg-surface-hover text-text-secondary'
+                    isRecording ? 'bg-status-red text-white' : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-secondary dark:text-slate-400'
                   }`}
                   aria-label={isRecording ? 'Stop recording' : 'Start voice message'}
                 >
@@ -722,15 +710,15 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                       }
                     }}
                     placeholder="Type a message..."
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-surface-border bg-surface-input text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-4 py-3 pr-12 rounded-xl border border-surface-border dark:border-slate-600 bg-surface-input dark:bg-slate-700 text-text-primary dark:text-slate-200 placeholder-text-tertiary dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                   
                   {/* Emoji button */}
                   <button
                     onClick={() => {}}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-hover dark:hover:bg-slate-600 transition-colors"
                   >
-                    <Smile className="w-5 h-5 text-text-secondary" />
+                    <Smile className="w-5 h-5 text-text-secondary dark:text-slate-400" />
                   </button>
                 </div>
 
@@ -747,11 +735,11 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-surface-main">
+          <div className="flex-1 flex items-center justify-center bg-surface-main dark:bg-slate-900">
             <div className="text-center">
-              <MessageSquare className="w-16 h-16 mx-auto mb-4 text-text-tertiary" />
-              <h3 className="text-xl font-semibold text-text-primary mb-2">Welcome to Chat</h3>
-              <p className="text-text-secondary">Select a conversation to start messaging with enhanced features</p>
+              <MessageSquare className="w-16 h-16 mx-auto mb-4 text-text-tertiary dark:text-slate-500" />
+              <h3 className="text-xl font-semibold text-text-primary dark:text-slate-200 mb-2">Welcome to Chat</h3>
+              <p className="text-text-secondary dark:text-slate-400">Select a conversation to start messaging with enhanced features</p>
             </div>
           </div>
         )}
