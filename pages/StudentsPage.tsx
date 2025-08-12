@@ -3,7 +3,28 @@ import { StudentsList } from '../components/StudentsList';
 import { useApp } from '../context/AppContext';
 
 export const StudentsPage: React.FC = () => {
-  const { students, instructors, activeLessons, billings, handleMarkAttendance, handleToggleStudentStatus, handleOpenEditSessionModal } = useApp();
+  const { 
+    students, 
+    instructors, 
+    activeLessons, 
+    billings, 
+    handleMarkAttendance, 
+    handleToggleStudentStatus, 
+    handleOpenEditSessionModal
+    // handleOpenEnrollmentModal,
+    // handleBulkAddStudents
+  } = useApp();
+  
+  const handleAddStudent = () => {
+    // TODO: Implement add student functionality
+    console.log('Add student clicked');
+  };
+
+  const handleBulkAdd = (students: Partial<any>[]) => {
+    // TODO: Implement bulk add functionality
+    console.log('Bulk add students:', students);
+  };
+  
   return (
     <StudentsList
       students={students}
@@ -13,6 +34,8 @@ export const StudentsPage: React.FC = () => {
       onMarkAttendance={handleMarkAttendance}
       onToggleStatus={handleToggleStudentStatus}
       onEditSessions={handleOpenEditSessionModal}
+      onAddStudent={handleAddStudent}
+      onBulkAddStudents={handleBulkAdd}
     />
   );
 };

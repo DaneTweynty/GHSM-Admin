@@ -390,50 +390,75 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
   };
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-center items-start p-4 overflow-hidden" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="edit-lesson-title">
+    <div ref={overlayRef} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-center items-start p-4 overflow-hidden" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="edit-lesson-title">
       {(isStartPickerOpen || isEndPickerOpen) && (
         <div
           className="fixed inset-0 z-[9998] bg-transparent"
           onClick={(e) => { e.stopPropagation(); setIsStartPickerOpen(false); setIsEndPickerOpen(false); }}
         />
       )}
-      <div ref={contentScrollRef} onClick={e => e.stopPropagation()} className="w-full max-w-lg my-8 max-h-[90vh] flex flex-col bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-[0_1px_2px_rgba(16,24,40,0.06),_0_1px_3px_rgba(16,24,40,0.10)] dark:shadow-none">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh]">
-          {/* Fixed Header */}
-          <div className="p-4 border-b border-surface-border dark:border-slate-700 flex-shrink-0">
-            <h2 id="edit-lesson-title" className="text-xl font-bold text-text-primary dark:text-slate-100">
-              {isAddMode ? 'Add New Lesson' : 'Edit Lesson'}
-            </h2>
-            {!isAddMode && (
-              <p className="text-text-secondary dark:text-slate-400">Student: <span className="font-semibold text-brand-secondary">{students.find(s => s.id === formData.studentId)?.name || 'Unknown'}</span></p>
-            )}
+      <div ref={contentScrollRef} onClick={e => e.stopPropagation()} className="w-full max-w-2xl my-4 max-h-[95vh] flex flex-col bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.1),_0_4px_6px_rgba(0,0,0,0.05)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.4),_0_4px_6px_rgba(0,0,0,0.2)]">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[95vh]">
+          {/* Enhanced Header with Better Spacing */}
+          <div className="px-6 py-4 border-b border-surface-border dark:border-slate-700 flex-shrink-0 bg-surface-header/50 dark:bg-slate-700/30 rounded-t-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 id="edit-lesson-title" className="text-xl font-bold text-text-primary dark:text-slate-100 mb-1">
+                  {isAddMode ? 'Add New Lesson' : 'Edit Lesson'}
+                </h2>
+                {!isAddMode && (
+                  <p className="text-sm text-text-secondary dark:text-slate-400">
+                    Student: <span className="font-semibold text-brand-primary dark:text-brand-secondary">{students.find(s => s.id === formData.studentId)?.name || 'Unknown'}</span>
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-text-secondary dark:text-slate-400 hover:text-text-primary dark:hover:text-slate-200 transition-colors p-1 rounded-md hover:bg-surface-hover dark:hover:bg-slate-700"
+                aria-label="Close modal"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto thin-scroll">
-            <div className="p-6">
-              
-              {error && <div className="bg-status-red-light dark:bg-status-red/20 border border-status-red/20 text-status-red px-4 py-3 rounded-md mb-4 font-medium" role="alert">{error}</div>}
+          {/* Enhanced Scrollable Content */}
+          <div className="flex-1 overflow-y-auto thin-scroll px-6 py-4">
+            
+            {error && <div className="bg-status-red/10 dark:bg-status-red/20 border border-status-red/20 text-status-red px-4 py-3 rounded-lg mb-4 font-medium flex items-center space-x-2" role="alert">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {isAddMode ? (
                    <>
                     <div className="md:col-span-2">
-                      <label htmlFor="studentId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Student</label>
+                      <label htmlFor="studentId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                        Student <span className="text-status-red">*</span>
+                      </label>
                       <ThemedSelect id="studentId" name="studentId" value={formData.studentId} onChange={handleChange} required>
                         <option value="" disabled>Select a student</option>
                         {students.sort((a,b) => a.name.localeCompare(b.name)).map(s => (
                           <option key={s.id} value={s.id}>
-                            {s.name} {s.status === 'inactive' ? '(Not Enrolled)' : ''}
+                            {s.name} - {s.instrument} {s.status === 'inactive' ? '(Not Enrolled)' : ''}
                           </option>
                         ))}
                       </ThemedSelect>
                     </div>
                     <div className="md:col-span-2">
-                        <label htmlFor="instructorId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Instructor</label>
+                        <label htmlFor="instructorId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                          Instructor <span className="text-status-red">*</span>
+                        </label>
                         <ThemedSelect id="instructorId" name="instructorId" value={formData.instructorId} onChange={handleChange}>
                             {instructors.length > 0 ? (
-                                instructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty})</option>)
+                                instructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty.join(', ')})</option>)
                             ) : (
                                 <option>No instructors available</option>
                             )}
@@ -442,10 +467,12 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                    </>
                 ) : (
                     <div className="md:col-span-2">
-                        <label htmlFor="instructorId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Instructor</label>
+                        <label htmlFor="instructorId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                          Instructor <span className="text-status-red">*</span>
+                        </label>
                         <ThemedSelect id="instructorId" name="instructorId" value={formData.instructorId} onChange={handleChange}>
                             {instructors.length > 0 ? (
-                                instructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty})</option>)
+                                instructors.map(i => <option key={i.id} value={i.id}>{i.name} ({i.specialty.join(', ')})</option>)
                             ) : (
                                 <option>No instructors available</option>
                             )}
@@ -453,91 +480,160 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                     </div>
                 )}
                 <div>
-                  <label htmlFor="date" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Date</label>
-                  <input type="date" id="date" name="date" value={formData.date} onChange={handleChange} className={inputClasses} />
+                  <label htmlFor="date" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                    Date <span className="text-status-red">*</span>
+                  </label>
+                  <input 
+                    type="date" 
+                    id="date" 
+                    name="date" 
+                    value={formData.date} 
+                    onChange={handleChange} 
+                    className={inputClasses}
+                    required 
+                  />
                 </div>
-                <div className="relative">
-                  <label htmlFor="time" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Start Time</label>
-                  <div className="relative">
-                    <select id="time" name="time" value={formData.time} onChange={handleChange} className={selectWithIconClasses}>
-                      {minuteOptions.map(t => <option key={t} value={t}>{to12Hour(t)}</option>)}
-                    </select>
-                    <button ref={startPickerBtnRef} type="button" aria-label="Open start time picker" className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-brand-primary" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setIsStartPickerOpen(v=>!v); setIsEndPickerOpen(false); }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2h-1V3a1 1 0 00-1-1H6z"/><path d="M18 9H2v6a2 2 0 002 2h12a2 2 0 002-2V9z"/></svg>
-                    </button>
-                    {isStartPickerOpen && (
-                      <TimePickerPopover
-                        value={formData.time}
-                        onChange={(v)=>{
-                          // reuse existing change logic
-                          handleChange({ target: { name: 'time', value: v } } as any);
-                        }}
-                        onClose={()=>setIsStartPickerOpen(false)}
-                        anchorRef={startPickerBtnRef}
-                        portalRoot={overlayRef}
-                        scrollParentRef={contentScrollRef}
-                        presets={[{label:'9 AM', hh:9, mm:0, ampm:'AM'}, {label:'12 PM', hh:12, mm:0, ampm:'PM'}, {label:'4 PM', hh:4, mm:0, ampm:'PM'}, {label:'6 PM', hh:6, mm:0, ampm:'PM'}]}
-                      />
-                    )}
-                  </div>
+                <div>
+                  <label htmlFor="time" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                    Start Time <span className="text-status-red">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    id="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    className={inputClasses}
+                    required
+                    step="900" // 15-minute intervals
+                    min="06:00"
+                    max="22:00"
+                  />
+                  <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                    Select time between 6:00 AM and 10:00 PM
+                  </p>
                 </div>
-                <div className="relative">
+                <div className="md:col-span-2">
                   <div className="flex items-baseline justify-between">
                     <label htmlFor="endTime" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">End Time</label>
                     {/* Duration hint */}
                     {formData.endTime && (
-                      <span className={`text-xs ${toMinutes(formData.endTime) - toMinutes(formData.time) < 15 ? 'text-status-red' : 'text-text-secondary'}`}>+{toMinutes(formData.endTime) - toMinutes(formData.time)} min</span>
+                      <span className={`text-xs ${toMinutes(formData.endTime) - toMinutes(formData.time) < 15 ? 'text-status-red' : 'text-text-secondary'}`}>
+                        +{toMinutes(formData.endTime) - toMinutes(formData.time)} min
+                      </span>
                     )}
                   </div>
                   <div>
-                    <div className="relative">
-                      <select id="endTime" name="endTime" value={formData.endTime || ''} onChange={handleChange} className={selectWithIconClasses}>
-                        {endOptionsConstrained.map(t => <option key={t} value={t}>{to12Hour(t)}</option>)}
-                      </select>
-                      <button ref={endPickerBtnRef} type="button" aria-label="Open end time picker" className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-brand-primary" onClick={(e)=>{ e.preventDefault(); e.stopPropagation(); setIsEndPickerOpen(v=>!v); setIsStartPickerOpen(false); }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2h-1V3a1 1 0 00-1-1H6z"/><path d="M18 9H2v6a2 2 0 002 2h12a2 2 0 002-2V9z"/></svg>
-                      </button>
-                      {isEndPickerOpen && (
-                        <TimePickerPopover
-                          value={formData.endTime || addMinutes(formData.time, 60)}
-                          onChange={(v)=>{
-                            handleChange({ target: { name: 'endTime', value: v } } as any);
-                          }}
-                          onClose={()=>setIsEndPickerOpen(false)}
-                          anchorRef={endPickerBtnRef}
-                          portalRoot={overlayRef}
-                          scrollParentRef={contentScrollRef}
-                          presets={[{label:'Top of hour', hh: (Math.max(1, ((Math.floor(toMinutes(formData.time)/60)%12)||12))), mm:0, ampm: (toMinutes(formData.time)>=12*60)?'PM':'AM'}]}
-                        />
-                      )}
-                    </div>
+                    <input
+                      type="time"
+                      id="endTime"
+                      name="endTime"
+                      value={formData.endTime || ''}
+                      onChange={handleChange}
+                      className={inputClasses}
+                      step="900" // 15-minute intervals
+                      min="06:00"
+                      max="23:00"
+                    />
+                    
                     {/* Quick duration buttons */}
-                    <div className="mt-2 flex gap-2">
-                      {[30,45,60].map(d => (
-                        <button key={d} type="button" className="px-2 py-1 rounded-full border border-surface-border dark:border-slate-600 text-sm hover:bg-surface-hover dark:hover:bg-slate-700" onClick={()=>{
-                          const newEnd = addMinutes(formData.time, d);
-                          handleChange({ target: { name: 'endTime', value: newEnd } } as any);
-                        }}>+{d}m</button>
+                    <div className="mt-3 flex gap-2 flex-wrap">
+                      <span className="text-xs text-text-secondary dark:text-slate-400 self-center mr-2">Quick durations:</span>
+                      {[30, 45, 60, 90].map(d => (
+                        <button 
+                          key={d} 
+                          type="button" 
+                          className="px-3 py-1.5 rounded-md border border-surface-border dark:border-slate-600 text-sm hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors bg-surface-card dark:bg-slate-800" 
+                          onClick={() => {
+                            const newEnd = addMinutes(formData.time, d);
+                            handleChange({ target: { name: 'endTime', value: newEnd } } as any);
+                          }}
+                        >
+                          {d}min
+                        </button>
                       ))}
                     </div>
+                    <p className="text-text-secondary dark:text-slate-400 text-sm mt-2">
+                      Or use quick duration buttons above
+                    </p>
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="roomId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Room</label>
-                  <input type="number" id="roomId" name="roomId" value={formData.roomId} onChange={handleChange} min="1" max={ROOM_COUNT} className={inputClasses} />
+                  <label htmlFor="roomId" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
+                    Room <span className="text-status-red">*</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    id="roomId" 
+                    name="roomId" 
+                    value={formData.roomId} 
+                    onChange={handleChange} 
+                    min="1" 
+                    max={ROOM_COUNT} 
+                    className={inputClasses}
+                    required 
+                  />
+                  <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                    Room number (1-{ROOM_COUNT})
+                  </p>
                 </div>
               </div>
-              <div className="mt-4">
-                <label htmlFor="notes" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">Notes</label>
+              
+              {/* Enhanced Notes Section */}
+              <div className="mt-6 p-4 bg-surface-card dark:bg-slate-800 rounded-lg border border-surface-border dark:border-slate-700 shadow-sm">
+                <label htmlFor="notes" className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-3">
+                  Lesson Notes
+                </label>
                 <textarea
                   id="notes"
                   name="notes"
                   value={formData.notes || ''}
                   onChange={handleChange}
-                  rows={3}
-                  className={inputClasses}
-                  placeholder="Add any specific notes for this lesson..."
+                  rows={4}
+                  className={`${inputClasses} resize-none`}
+                  placeholder="Add specific notes: homework assignments, focus areas, student progress, materials needed..."
                 />
+                <div className="flex justify-between items-center mt-3">
+                  <p className="text-xs text-text-tertiary dark:text-slate-500">
+                    Use notes for tracking progress and communication with parents
+                  </p>
+                  <span className={`text-xs font-medium ${(formData.notes?.length || 0) > 500 ? 'text-status-red' : 'text-text-tertiary dark:text-slate-500'}`}>
+                    {formData.notes?.length || 0}/500
+                  </span>
+                </div>
+              </div>
+
+              {/* Lesson Type Section */}
+              <div className="mt-6 p-4 bg-surface-card dark:bg-slate-800 rounded-lg border border-surface-border dark:border-slate-700 shadow-sm">
+                <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-3">
+                  Lesson Type <span className="text-status-red">*</span>
+                </label>
+                <div className="space-y-3">
+                  {['Regular', 'Makeup'].map(type => (
+                    <label key={type} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors group">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="lessonType"
+                          value={type}
+                          checked={(formData as any).lessonType === type || (!(formData as any).lessonType && type === 'Regular')}
+                          onChange={(e) => setFormData(prev => prev ? { ...prev, lessonType: e.target.value } : prev)}
+                          className="sr-only"
+                        />
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          ((formData as any).lessonType === type || (!(formData as any).lessonType && type === 'Regular'))
+                            ? 'bg-brand-primary border-brand-primary text-white'
+                            : 'border-surface-border dark:border-slate-600 group-hover:border-brand-primary'
+                        }`}>
+                          {((formData as any).lessonType === type || (!(formData as any).lessonType && type === 'Regular')) && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-text-primary dark:text-slate-200 group-hover:text-brand-primary transition-colors">{type}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Repeat weekly options (add/edit) */}
@@ -588,15 +684,15 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
             </div>
           </div>
           
-          {/* Fixed Footer */}
-          <div className="p-4 border-t border-surface-border dark:border-slate-700 flex-shrink-0">
+          {/* Enhanced Fixed Footer */}
+          <div className="px-6 py-4 border-t border-surface-border dark:border-slate-700 flex-shrink-0 bg-surface-header/30 dark:bg-slate-700/20 rounded-b-xl">
             <div className="flex justify-between items-center">
               <div>
                 {!isAddMode && (
                   <button
                     type="button"
                     onClick={handleTrash}
-                    className="px-4 py-2 rounded-md font-semibold text-white bg-status-red hover:opacity-90 transition-opacity flex items-center space-x-2"
+                    className="px-4 py-2 rounded-lg font-semibold text-white bg-status-red hover:bg-red-600 transition-colors flex items-center space-x-2 shadow-sm"
                     aria-label="Move this lesson to the trash"
                   >
                     {ICONS.trash}
@@ -605,8 +701,17 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                 )}
               </div>
               <div className="flex space-x-3">
-                <button type="button" onClick={onClose} className="px-4 py-2 rounded-md font-semibold text-text-secondary dark:text-slate-300 bg-surface-input dark:bg-slate-600 hover:brightness-95 dark:hover:bg-slate-500 transition-all">Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded-md font-semibold text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity">
+                <button 
+                  type="button" 
+                  onClick={onClose} 
+                  className="px-4 py-2 rounded-lg font-semibold text-text-secondary dark:text-slate-300 bg-surface-input dark:bg-slate-600 hover:bg-surface-hover dark:hover:bg-slate-500 transition-colors border border-surface-border dark:border-slate-500"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 rounded-lg font-semibold text-white bg-brand-primary hover:bg-blue-600 transition-colors shadow-sm"
+                >
                   {isAddMode ? 'Add Lesson' : 'Save Changes'}
                 </button>
               </div>

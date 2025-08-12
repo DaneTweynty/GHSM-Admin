@@ -242,28 +242,13 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
             <div className="flex items-center justify-between mb-2">
               <div className="text-[11px] uppercase tracking-wide text-text-tertiary dark:text-slate-400">Contact Information</div>
               {!isEditingContact ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingContact(true)}
-                    className="text-xs px-2 py-0.5 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 hover:bg-black/5 dark:hover:bg-white/5"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMarkAttendance(student.id)}
-                    disabled={wasAttendedRecently || student.status === 'inactive'}
-                    className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-md font-semibold transition-colors ${
-                      wasAttendedRecently
-                        ? 'bg-surface-input dark:bg-slate-700 text-text-tertiary dark:text-slate-500 cursor-not-allowed'
-                        : 'bg-brand-primary-light dark:bg-brand-primary/20 text-text-primary dark:text-brand-primary hover:bg-black/5 dark:hover:bg-brand-primary/30'
-                    }`}
-                  >
-                    <CheckIcon />
-                    {wasAttendedRecently ? 'Attended' : 'Attend'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingContact(true)}
+                  className="text-xs px-2 py-0.5 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  Edit
+                </button>
               ) : null}
             </div>
             {!isEditingContact ? (

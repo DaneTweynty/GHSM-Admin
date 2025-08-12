@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import type { Instructor, Student, Lesson } from '../types';
 import { Card } from './Card';
 import { TeacherDetailView } from './TeacherDetailView';
-import { InstructorProfilePopover } from './InstructorProfilePopover';
+import { InstructorProfilePopover } from './InstructorProfileModal';
 import { ICONS } from '../constants';
 
 interface TeachersListProps {
@@ -42,7 +42,36 @@ const InstructorAvatar: React.FC<{ instructor: Instructor }> = ({ instructor }) 
 export const TeachersList: React.FC<TeachersListProps> = ({ instructors, students, lessons, onMarkAttendance, onEditInstructor, onAddInstructor, onToggleInstructorStatus }) => {
   const [expandedInstructorId, setExpandedInstructorId] = useState<string | null>(null);
   const [profilePopoverInstructorId, setProfilePopoverInstructorId] = useState<string | null>(null);
-  const infoButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12); // 12 instructors per page
+  
+  // Filter instructors based on search query
+  const filteredInstructors = instructors.filter(instructor => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase().trim();
+    const name = instructor.name.toLowerCase();
+    const status = instructor.status.toLowerCase();
+    
+    // Get specialties as searchable string
+    const specialties = instructor.specialty.join(' ').toLowerCase();
+    
+    return name.includes(query) || 
+           specialties.includes(query) || 
+           status.includes(query);
+  });
+  
+  // Calculate pagination with filtered results
+  const sortedInstructors = [...filteredInstructors].sort((a, b) => a.name.localeCompare(b.name));
+  const totalPages = Math.ceil(sortedInstructors.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedInstructors = sortedInstructors.slice(startIndex, endIndex);
 
   const handleToggleDetails = (instructorId: string) => {
     setExpandedInstructorId(prevId => (prevId === instructorId ? null : instructorId));
@@ -57,20 +86,105 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
     setProfilePopoverInstructorId(null);
   };
 
+  // Search handlers
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+    setExpandedInstructorId(null); // Close any expanded details when searching
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
+    setExpandedInstructorId(null);
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setExpandedInstructorId(null); // Close any expanded details when changing pages
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
   return (
-    <Card>
-      <div className="p-4 sm:p-6 flex justify-between items-center">
-       <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Instructor Roster</h2>
-       <button
-         onClick={onAddInstructor}
-         className="flex items-center space-x-2 px-4 py-2 rounded-md font-semibold text-sm text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity"
-       >
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-           <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-         </svg>
-         <span>Add Instructor</span>
-       </button>
-      </div>
+    <div className="max-w-7xl mx-auto"> {/* Optimal container size */}
+      <Card>
+        <div className="p-4 sm:p-6 flex flex-col gap-4">
+          {/* Header section with title and add button */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Instructor Roster</h2>
+              <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
+                Showing {startIndex + 1}-{Math.min(endIndex, sortedInstructors.length)} of {sortedInstructors.length} instructor{sortedInstructors.length !== 1 ? 's' : ''}
+                {searchQuery && filteredInstructors.length !== instructors.length && (
+                  <span className="text-brand-primary"> (filtered from {instructors.length} total)</span>
+                )}
+              </p>
+            </div>
+            <button
+              onClick={onAddInstructor}
+              className="flex items-center space-x-2 px-4 py-2 rounded-md font-semibold text-sm text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              <span>Add Instructor</span>
+            </button>
+          </div>
+
+          {/* Search section */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="relative flex-1 max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-text-tertiary dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by name, specialty, or status..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="block w-full pl-10 pr-10 py-2 border border-surface-border dark:border-slate-600 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-surface-input dark:bg-slate-700 text-text-primary dark:text-slate-100 placeholder-text-tertiary dark:placeholder-slate-500 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            
+            {/* Search results summary */}
+            {searchQuery && (
+              <div className="text-sm text-text-secondary dark:text-slate-400">
+                {filteredInstructors.length === 0 ? (
+                  <span className="text-status-red">No instructors found</span>
+                ) : (
+                  <span>
+                    {filteredInstructors.length} result{filteredInstructors.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
           <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
@@ -84,7 +198,45 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
             </tr>
           </thead>
           <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
-            {[...instructors].sort((a, b) => a.name.localeCompare(b.name)).map((instructor) => {
+            {paginatedInstructors.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <svg className="h-12 w-12 text-text-tertiary dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                    {searchQuery ? (
+                      <div className="text-center">
+                        <p className="text-text-primary dark:text-slate-300 font-medium">No instructors found</p>
+                        <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                          Try adjusting your search terms or{' '}
+                          <button
+                            onClick={handleClearSearch}
+                            className="text-brand-primary hover:text-brand-primary/80 font-medium"
+                          >
+                            clear the search
+                          </button>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-text-primary dark:text-slate-300 font-medium">No instructors yet</p>
+                        <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                          Get started by adding your first instructor
+                        </p>
+                        <button
+                          onClick={onAddInstructor}
+                          className="mt-3 inline-flex items-center px-4 py-2 text-sm font-medium text-text-on-color bg-brand-primary rounded-md hover:opacity-90 transition-opacity"
+                        >
+                          Add Instructor
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              paginatedInstructors.map((instructor) => {
                 const isExpanded = expandedInstructorId === instructor.id;
                 return (
                     <React.Fragment key={instructor.id}>
@@ -97,11 +249,6 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
                                       <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                   </button>
                                   <button
-                                    ref={el => {
-                                      if (el) {
-                                        infoButtonRefs.current[instructor.id] = el;
-                                      }
-                                    }}
                                     onClick={(e) => handleShowProfile(instructor.id, e)}
                                     className="ml-2 p-1 rounded-full text-text-tertiary hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
                                     aria-label={`View ${instructor.name} profile`}
@@ -157,7 +304,7 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
                                       onClick={() => onToggleInstructorStatus(instructor.id)}
                                       className={`w-24 text-center px-3 py-1 rounded-md transition-colors font-semibold text-xs ${
                                         instructor.status === 'active'
-                                          ? 'bg-status-yellow-light dark:bg-status-yellow/20 text-text-primary dark:text-status-yellow hover:bg-black/5 dark:hover:bg-status-yellow/30'
+                                          ? 'bg-status-red-light dark:bg-status-red/20 text-text-primary dark:text-status-red hover:bg-black/5 dark:hover:bg-status-red/30'
                                           : 'bg-status-green-light dark:bg-status-green/20 text-text-primary dark:text-status-green hover:bg-black/5 dark:hover:bg-status-green/30'
                                       }`}
                                     >
@@ -179,30 +326,82 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
                             </tr>
                         )}
                     </React.Fragment>
-                )
-            })}
+                );
+              })
+            )}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-surface-border dark:border-slate-700">
+            <div className="flex items-center text-sm text-text-secondary dark:text-slate-400">
+              <span>Page {currentPage} of {totalPages}</span>
+              <span className="ml-4">
+                Showing {startIndex + 1}-{Math.min(endIndex, sortedInstructors.length)} of {sortedInstructors.length} instructors
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700"
+              >
+                Previous
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-brand-primary text-white'
+                        : 'bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Profile Popover */}
+      {/* Profile Modal */}
       {profilePopoverInstructorId && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={handleCloseProfile}
-          />
-          <InstructorProfilePopover
-            instructor={instructors.find(i => i.id === profilePopoverInstructorId)!}
-            students={students}
-            lessons={lessons}
-            isOpen={true}
-            onClose={handleCloseProfile}
-            anchorRef={{ current: infoButtonRefs.current[profilePopoverInstructorId] || null }}
-          />
-        </>
+        <InstructorProfilePopover
+          instructor={instructors.find(i => i.id === profilePopoverInstructorId)!}
+          students={students}
+          lessons={lessons}
+          isOpen={true}
+          onClose={handleCloseProfile}
+        />
       )}
     </Card>
+    </div>
   );
 };
 

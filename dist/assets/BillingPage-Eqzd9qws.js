@@ -1,0 +1,1 @@
+import{u as s,j as t}from"./chat-CI5uTd2o.js";import{B as r}from"./management-5vmWAhZ2.js";import"./ui-CcSG_NNb.js";import"./vendor-DEQ385Nk.js";import"./calendar-Dp5FPTLB.js";const n=()=>{const{students:n,billings:o}=s();return t.jsx(r,{students:n,billings:o})};export{n as BillingPage};

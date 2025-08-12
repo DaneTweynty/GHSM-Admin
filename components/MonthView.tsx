@@ -118,7 +118,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 {date.getDate()}
               </span>
               {isCurrentMonth && (
-                  <button onClick={(e) => { e.stopPropagation(); onAddLesson(date)}} className="text-text-tertiary dark:text-slate-500 hover:text-brand-primary dark:hover:text-brand-primary transition-colors p-1 rounded-full hover:bg-surface-hover dark:hover:bg-slate-700" aria-label={`Add lesson on ${date.toLocaleDateString()}`}>
+                  <button onClick={(e) => { e.stopPropagation(); onAddLesson(date)}} className="text-text-secondary dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary transition-colors p-1 rounded-full hover:bg-surface-hover dark:hover:bg-slate-700" aria-label={`Add lesson on ${date.toLocaleDateString()}`}>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12M6 12h12" /></svg>
                   </button>
               )}
@@ -133,7 +133,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                       <div key={lesson.id} className="relative group">
                           <button
                               onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
-                              style={{ backgroundColor: instructor?.color }}
+                              style={{ backgroundColor: instructor?.color || '#6B7280' }}
                               className={`w-full text-left p-1 md:p-1.5 rounded-md text-text-on-color dark:text-slate-800 text-[10px] md:text-[11px] leading-tight transition-all hover:opacity-80 dark:hover:opacity-90 active:cursor-grabbing cursor-grab`}
                               title={`Lesson: ${student?.name} at ${lesson.time}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
                               aria-label={`Lesson for ${student?.name} at ${lesson.time}${hasNote ? '. This lesson has a note.' : ''}. Double click to edit.`}

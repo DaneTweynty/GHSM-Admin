@@ -225,20 +225,44 @@ export const DayView: React.FC<DayViewProps> = ({
           {TIME_SLOTS.map((t, i) => (
             <div key={t} className="absolute left-0 right-0 border-t border-surface-border/60 dark:border-slate-700/60" style={{ top: i * HOUR_HEIGHT }} />
           ))}
+          
+          {/* Quarter-hour grid lines for better time indication */}
+          {TIME_SLOTS.flatMap((t, i) => [1, 2, 3].map(quarter => (
+            <div key={`${t}-${quarter}`} className="absolute left-0 right-0 border-t border-surface-border/20 dark:border-slate-700/20" style={{ top: i * HOUR_HEIGHT + quarter * (HOUR_HEIGHT / 4) }} />
+          )))}
 
-          {/* Quick add buttons at each hour */}
-          {TIME_SLOTS.map((t, i) => (
-            <button
-              key={`add-${t}`}
-              onClick={(e) => { e.stopPropagation(); onAddLesson(currentDate, t); }}
-              className="absolute right-1 z-20 p-1 rounded-full text-text-tertiary dark:text-slate-400 hover:text-brand-primary dark:hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-              style={{ top: i * HOUR_HEIGHT + 6 }}
-              title={`Add lesson at ${t}`}
-              aria-label={`Add lesson at ${t}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12M6 12h12" /></svg>
-            </button>
-          ))}
+          {/* Quick add buttons at each hour - positioned in dedicated column */}
+          <div className="absolute right-0 top-0 bottom-0 w-14 bg-surface-card/30 dark:bg-slate-800/30 border-l border-surface-border/30 dark:border-slate-700/30">
+            {TIME_SLOTS.map((t, i) => {
+              // Check if there are lessons overlapping this time slot
+              const hasOverlappingLesson = placedLessons.some(lesson => {
+                const lessonTop = lesson._top;
+                const lessonBottom = lessonTop + lesson._height;
+                const slotTop = i * HOUR_HEIGHT;
+                const slotBottom = slotTop + HOUR_HEIGHT;
+                return lessonTop < slotBottom && lessonBottom > slotTop;
+              });
+              
+              return (
+                <button
+                  key={`add-${t}`}
+                  onClick={(e) => { e.stopPropagation(); onAddLesson(currentDate, t); }}
+                  className={`absolute left-1/2 transform -translate-x-1/2 z-30 p-1.5 rounded-full text-text-secondary dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors shadow-sm ${
+                    hasOverlappingLesson 
+                      ? 'bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600' 
+                      : 'hover:shadow-md'
+                  }`}
+                  style={{ top: i * HOUR_HEIGHT + 4 }}
+                  title={`Add lesson at ${to12Hour(t)}`}
+                  aria-label={`Add lesson at ${to12Hour(t)}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12M6 12h12" />
+                  </svg>
+                </button>
+              );
+            })}
+          </div>
 
           {/* Lunch shaded area */}
           {(() => {
@@ -257,8 +281,11 @@ export const DayView: React.FC<DayViewProps> = ({
             const hasNote = lesson.notes && lesson.notes.trim() !== '';
             // Horizontal lanes with tight 2px gap between lanes
             const GAP = 2;
-            const width = `calc((100% - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
-            const left = `calc(${lesson._lane} * (100% / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
+            const BUTTON_COLUMN_WIDTH = 56; // 56px for button column to prevent overlap
+            const LESSON_AREA_WIDTH = `calc(100% - ${BUTTON_COLUMN_WIDTH}px - 8px)`; // Additional 8px margin
+            const laneWidth = `calc((${LESSON_AREA_WIDTH} - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
+            const width = laneWidth;
+            const left = `calc(${lesson._lane} * (${laneWidth}) + ${lesson._lane * GAP}px + 4px)`; // 4px left margin
             const startLabel = to12Hour(lesson.time);
             const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
             const cardH = Math.max(30, lesson._height);
@@ -270,12 +297,24 @@ export const DayView: React.FC<DayViewProps> = ({
               >
                 <button
                   onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
-                  style={{ backgroundColor: instructor?.color, height: '100%' }}
-                  className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-[11px] leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
-                  title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
-                  aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Double click to edit.`}
+                  onMouseDown={(e) => {
+                    // Allow drag to start properly
+                    if (e.detail === 1) { // Single click
+                      e.currentTarget.setAttribute('data-allow-drag', 'true');
+                    }
+                  }}
+                  style={{ backgroundColor: instructor?.color || '#6B7280', height: '100%' }}
+                  className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
+                  title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDrag to move • Double-click to edit`}
+                  aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Drag to move or double click to edit.`}
                   draggable="true"
-                  onDragStart={(e) => onLessonDragStart(e, lesson)}
+                  onDragStart={(e) => {
+                    e.currentTarget.style.opacity = '0.5';
+                    onLessonDragStart(e, lesson);
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
                 >
                   {/* left accent stripe */}
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.35), rgba(255,255,255,0.35) 2px, transparent 2px, transparent 4px)' }} />
@@ -287,7 +326,7 @@ export const DayView: React.FC<DayViewProps> = ({
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
                         )}
                       </div>
-                      <div className="text-[10px] opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
+                      <div className="text-xs opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
                     </>
                   ) : (
                     <>

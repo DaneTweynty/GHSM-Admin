@@ -42,6 +42,116 @@
       "guardianName": "Maria Rodriguez",
       "gender": "Male",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=DavidRodriguez"
+    },
+    {
+      "studentIdNumber": "100005",
+      "name": "Emma Wilson",
+      "instrument": "Piano",
+      "age": 12,
+      "email": "emma.wilson@example.com",
+      "contactNumber": "(555) 345-6789",
+      "guardianName": "Sarah Wilson",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=EmmaWilson"
+    },
+    {
+      "studentIdNumber": "100006",
+      "name": "Jake Martinez",
+      "instrument": "Guitar",
+      "age": 16,
+      "email": "jake.martinez@example.com",
+      "contactNumber": "(555) 456-7890",
+      "guardianName": "Carlos Martinez",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=JakeMartinez"
+    },
+    {
+      "studentIdNumber": "100007",
+      "name": "Lily Thompson",
+      "instrument": "Violin",
+      "age": 10,
+      "email": "lily.thompson@example.com",
+      "contactNumber": "(555) 567-8901",
+      "guardianName": "Jennifer Thompson",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=LilyThompson"
+    },
+    {
+      "studentIdNumber": "100008",
+      "name": "Ryan Park",
+      "instrument": "Drums",
+      "age": 15,
+      "email": "ryan.park@example.com",
+      "contactNumber": "(555) 678-9012",
+      "guardianName": "Michael Park",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=RyanPark"
+    },
+    {
+      "studentIdNumber": "100009",
+      "name": "Sophie Anderson",
+      "instrument": "Piano",
+      "age": 13,
+      "email": "sophie.anderson@example.com",
+      "contactNumber": "(555) 789-0123",
+      "guardianName": "Laura Anderson",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=SophieAnderson"
+    },
+    {
+      "studentIdNumber": "100010",
+      "name": "Tyler Brooks",
+      "instrument": "Guitar",
+      "age": 18,
+      "email": "tyler.brooks@example.com",
+      "contactNumber": "(555) 890-1234",
+      "guardianName": "Robert Brooks",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=TylerBrooks"
+    },
+    {
+      "studentIdNumber": "100011",
+      "name": "Grace Lee",
+      "instrument": "Violin",
+      "age": 11,
+      "email": "grace.lee@example.com",
+      "contactNumber": "(555) 901-2345",
+      "guardianName": "Helen Lee",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=GraceLee"
+    },
+    {
+      "studentIdNumber": "100012",
+      "name": "Mason Clark",
+      "instrument": "Drums",
+      "age": 14,
+      "email": "mason.clark@example.com",
+      "contactNumber": "(555) 012-3456",
+      "guardianName": "Patricia Clark",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=MasonClark"
+    },
+    {
+      "studentIdNumber": "100013",
+      "name": "Olivia Garcia",
+      "instrument": "Piano",
+      "age": 16,
+      "email": "olivia.garcia@example.com",
+      "contactNumber": "(555) 123-4567",
+      "guardianName": "Ana Garcia",
+      "gender": "Female",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=OliviaGarcia"
+    },
+    {
+      "studentIdNumber": "100014",
+      "name": "Noah White",
+      "instrument": "Guitar",
+      "age": 17,
+      "email": "noah.white@example.com",
+      "contactNumber": "(555) 234-5678",
+      "guardianName": "Steven White",
+      "gender": "Male",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=NoahWhite"
     }
   ],
   "instructors": [
@@ -76,6 +186,86 @@
       "phone": "(555) 104-1004", 
       "bio": "Jazz drummer with extensive touring experience. Expert in both traditional and modern drumming techniques.",
       "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=KenjiTanaka"
+    },
+    {
+      "name": "Isabella Rodriguez",
+      "specialty": ["Piano", "Voice"],
+      "email": "isabella.rodriguez@musicschool.com",
+      "phone": "(555) 105-1005",
+      "bio": "Classically trained pianist and vocal coach. Specializes in musical theater and contemporary vocal techniques.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=IsabellaRodriguez"
+    },
+    {
+      "name": "Alexander Petrov",
+      "specialty": ["Guitar", "Electric Guitar"],
+      "email": "alexander.petrov@musicschool.com",
+      "phone": "(555) 106-1006",
+      "bio": "Rock and metal guitarist with 15 years of performance experience. Expert in electric guitar techniques and music production.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=AlexanderPetrov"
+    },
+    {
+      "name": "Sophia Chen",
+      "specialty": ["Violin", "Piano"],
+      "email": "sophia.chen@musicschool.com",
+      "phone": "(555) 107-1007",
+      "bio": "Conservatory-trained violinist and pianist. Specializes in chamber music and solo performance preparation.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=SophiaChen"
+    },
+    {
+      "name": "Marcus Johnson",
+      "specialty": ["Drums", "Percussion"],
+      "email": "marcus.johnson@musicschool.com",
+      "phone": "(555) 108-1008",
+      "bio": "Multi-percussionist with experience in jazz, Latin, and world music. Former touring musician and session artist.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=MarcusJohnson"
+    },
+    {
+      "name": "Aria Nakamura",
+      "specialty": ["Voice", "Piano"],
+      "email": "aria.nakamura@musicschool.com",
+      "phone": "(555) 109-1009",
+      "bio": "Professional vocalist and pianist specializing in jazz and pop. Former backup singer for major recording artists.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=AriaNakamura"
+    },
+    {
+      "name": "Diego Morales",
+      "specialty": ["Guitar", "Bass Guitar"],
+      "email": "diego.morales@musicschool.com",
+      "phone": "(555) 110-1010",
+      "bio": "Versatile guitarist and bassist with expertise in Latin, rock, and fusion genres. Studio recording professional.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=DiegoMorales"
+    },
+    {
+      "name": "Luna Thompson",
+      "specialty": ["Violin", "Viola"],
+      "email": "luna.thompson@musicschool.com",
+      "phone": "(555) 111-1011",
+      "bio": "String specialist with orchestral and solo performance background. Expert in both classical and contemporary styles.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=LunaThompson"
+    },
+    {
+      "name": "Oliver Williams",
+      "specialty": ["Piano", "Music Theory"],
+      "email": "oliver.williams@musicschool.com",
+      "phone": "(555) 112-1012",
+      "bio": "Composer and music theorist with a focus on contemporary classical music. PhD in Music Composition.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=OliverWilliams"
+    },
+    {
+      "name": "Zara Okafor",
+      "specialty": ["Voice", "Guitar"],
+      "email": "zara.okafor@musicschool.com",
+      "phone": "(555) 113-1013",
+      "bio": "Singer-songwriter with expertise in folk, indie, and acoustic genres. Professional touring and recording artist.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=ZaraOkafor"
+    },
+    {
+      "name": "Benjamin Scott",
+      "specialty": ["Drums", "Guitar"],
+      "email": "benjamin.scott@musicschool.com",
+      "phone": "(555) 114-1014",
+      "bio": "Multi-instrumentalist with expertise in rock, punk, and alternative music. Former band member and music producer.",
+      "profilePictureUrl": "https://api.dicebear.com/8.x/pixel-art/svg?seed=BenjaminScott"
     }
   ]
 }

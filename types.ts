@@ -24,6 +24,7 @@ export interface Student {
   // Enhanced guardian/parent details
   guardianName?: string;
   guardianFullName?: string;
+  guardianRelationship?: string;
   guardianPhone?: string; // Made optional as per requirement
   guardianEmail?: string;
   guardianFacebook?: string;

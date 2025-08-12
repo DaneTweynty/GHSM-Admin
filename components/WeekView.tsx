@@ -234,55 +234,99 @@ export const WeekView: React.FC<WeekViewProps> = ({
             })()}
           </div>
           <div
-            className="relative border-l border-surface-border dark:border-slate-700"
+            className={`relative border-l border-surface-border dark:border-slate-700 ${(() => {
+              const maxLanes = Math.max(...placedActive.map(l => l._lanes), 1);
+              return maxLanes > 4 ? 'overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600' : '';
+            })()}`}
             style={{ height: totalMin * PX_PER_MIN }}
             onDragOver={(e) => handleColumnDragOver(e, activeDate)}
             onDrop={(e) => handleColumnDrop(e, activeDate)}
             onDragLeave={handleColumnDragLeave}
             onDoubleClick={(e) => handleColumnDoubleClick(e, activeDate)}
           >
-            {/* Now line (mobile day canvas) */}
-            {(() => {
-              const nowMin = now.getHours() * 60 + now.getMinutes();
-              if (nowMin >= startMin && nowMin <= endMin && activeDate.toDateString() === new Date().toDateString()) {
-                const top = (nowMin - startMin) * PX_PER_MIN;
-                return (
-                  <div className="absolute left-0 right-0 z-10" style={{ top }}>
-                    <div className="h-px bg-brand-primary" />
-                    <div className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-brand-primary" />
+            <div className="relative h-full" style={{ 
+              minWidth: '100%',
+              width: (() => {
+                const maxLanes = Math.max(...placedActive.map(l => l._lanes), 1);
+                if (maxLanes > 4) {
+                  const MIN_CARD_WIDTH = 120;
+                  const GAP = 2;
+                  const BUTTON_COLUMN_WIDTH = 40;
+                  return `${maxLanes * MIN_CARD_WIDTH + (maxLanes - 1) * GAP + BUTTON_COLUMN_WIDTH}px`;
+                }
+                return '100%';
+              })()
+            }}>
+              {/* Now line (mobile day canvas) */}
+              {(() => {
+                const nowMin = now.getHours() * 60 + now.getMinutes();
+                if (nowMin >= startMin && nowMin <= endMin && activeDate.toDateString() === new Date().toDateString()) {
+                  const top = (nowMin - startMin) * PX_PER_MIN;
+                  return (
+                    <div className="absolute left-0 right-0 z-10" style={{ top }}>
+                      <div className="h-px bg-brand-primary" />
+                      <div className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-brand-primary" />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              {/* Drag guide preview (mobile) */}
+              {dragGuide && dragGuide.dateKey === toYYYYMMDD(activeDate) && (
+                <div className="absolute left-0 right-0 pointer-events-none" style={{ top: dragGuide.top, height: dragGuide.height }}>
+                  <div className="absolute inset-0 border-2 border-dashed border-brand-primary/70 bg-brand-primary/10 rounded-sm" />
+                  <div className="absolute -left-1 -top-5 bg-brand-primary text-text-on-color text-[10px] px-1 py-0.5 rounded shadow-sm">
+                    {dragGuide.label}
                   </div>
-                );
-              }
-              return null;
-            })()}
-            {/* Drag guide preview (mobile) */}
-            {dragGuide && dragGuide.dateKey === toYYYYMMDD(activeDate) && (
-              <div className="absolute left-0 right-0 pointer-events-none" style={{ top: dragGuide.top, height: dragGuide.height }}>
-                <div className="absolute inset-0 border-2 border-dashed border-brand-primary/70 bg-brand-primary/10 rounded-sm" />
-                <div className="absolute -left-1 -top-5 bg-brand-primary text-text-on-color text-[10px] px-1 py-0.5 rounded shadow-sm">
-                  {dragGuide.label}
                 </div>
-              </div>
-            )}
-            {TIME_SLOTS.map((t, i) => (
-              <div key={t} className="absolute left-0 right-0 border-t border-surface-border/60 dark:border-slate-700/60" style={{ top: i * HOUR_HEIGHT }} />
-            ))}
-            {(() => {
-              const l = toMinutes(LUNCH_BREAK_TIME);
-              if (l >= startMin && l < endMin) {
-                const top = (l - startMin) * PX_PER_MIN;
-                return <div className="absolute left-0 right-0 bg-surface-input/50 dark:bg-slate-700/50" style={{ top, height: HOUR_HEIGHT }} />;
-              }
-              return null;
-            })()}
+              )}
+              {TIME_SLOTS.map((t, i) => (
+                <div key={t} className="absolute left-0 right-0 border-t border-surface-border/60 dark:border-slate-700/60" style={{ top: i * HOUR_HEIGHT }} />
+              ))}
+              {(() => {
+                const l = toMinutes(LUNCH_BREAK_TIME);
+                if (l >= startMin && l < endMin) {
+                  const top = (l - startMin) * PX_PER_MIN;
+                  return <div className="absolute left-0 right-0 bg-surface-input/50 dark:bg-slate-700/50" style={{ top, height: HOUR_HEIGHT }} />;
+                }
+                return null;
+              })()}
+              
+              {/* Scroll indicator for mobile */}
+              {(() => {
+                const maxLanes = Math.max(...placedActive.map(l => l._lanes), 1);
+                if (maxLanes > 4) {
+                  return (
+                    <div className="absolute top-2 right-2 bg-black/20 text-white text-[10px] px-2 py-1 rounded-full z-30 pointer-events-none">
+                      {maxLanes} lessons → scroll
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             {placedActive.map(lesson => {
               const student = studentMap.get(lesson.studentId);
               const instructor = instructorMap.get(lesson.instructorId);
               const hasNote = lesson.notes && lesson.notes.trim() !== '';
-              // Horizontal lanes with tight 2px gap to better show real time overlap
+              
+              // Calculate minimum readable width and scrollable layout
+              const MIN_CARD_WIDTH = 120; // Minimum readable width
+              const BUTTON_COLUMN_WIDTH = 40;
               const GAP = 2;
-              const width = `calc((100% - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
-              const left = `calc(${lesson._lane} * (100% / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
+              
+              // Determine layout strategy based on number of concurrent lessons
+              let width, left;
+              if (lesson._lanes > 4) {
+                // Use fixed minimum width for scrollable layout when many lessons
+                width = `${MIN_CARD_WIDTH}px`;
+                left = `${lesson._lane * (MIN_CARD_WIDTH + GAP)}px`;
+              } else {
+                // Use percentage-based layout for fewer lessons
+                const availableWidth = `(100% - ${BUTTON_COLUMN_WIDTH}px)`;
+                width = `calc((${availableWidth} - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
+                left = `calc(${lesson._lane} * (${availableWidth} / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
+              }
+              
               const startLabel = to12Hour(lesson.time);
               const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
               const cardH = Math.max(30, lesson._height);
@@ -291,12 +335,24 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 <div key={lesson.id} className="absolute p-1 z-20" style={{ top: lesson._top, left, width, height: cardH }}>
                   <button
                     onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
-                    style={{ backgroundColor: instructor?.color, height: '100%' }}
-                    className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-[11px] leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
-                    title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
-                    aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Double click to edit.`}
+                    onMouseDown={(e) => {
+                      // Allow drag to start properly
+                      if (e.detail === 1) { // Single click
+                        e.currentTarget.setAttribute('data-allow-drag', 'true');
+                      }
+                    }}
+                    style={{ backgroundColor: instructor?.color || '#6B7280', height: '100%' }}
+                    className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
+                    title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDrag to move • Double-click to edit`}
+                    aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Drag to move or double click to edit.`}
                     draggable="true"
-                    onDragStart={(e) => onLessonDragStart(e, lesson)}
+                    onDragStart={(e) => {
+                      e.currentTarget.style.opacity = '0.5';
+                      onLessonDragStart(e, lesson);
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
                   >
                     {/* left accent stripe with subtle diagonal hatch */}
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.35), rgba(255,255,255,0.35) 2px, transparent 2px, transparent 4px)' }} />
@@ -306,7 +362,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                           <span className="font-semibold truncate mr-2">{student?.name}</span>
                           {hasNote && <NoteIcon />}
                         </div>
-                        <div className="text-[10px] opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
+                        <div className="text-xs opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
                       </>
                     ) : (
                       <>
@@ -321,6 +377,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
@@ -370,9 +427,25 @@ export const WeekView: React.FC<WeekViewProps> = ({
             const placed = placedByDate.get(dateStr) || [];
 
             return (
-              <div key={date.toISOString()} className="relative border-r border-surface-border dark:border-slate-700" style={{ height: totalMin * PX_PER_MIN }}>
+              <div key={date.toISOString()} className={`relative border-r border-surface-border dark:border-slate-700 ${(() => {
+                const maxLanes = Math.max(...placed.map(l => l._lanes), 1);
+                return maxLanes > 4 ? 'overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600' : '';
+              })()}`} style={{ height: totalMin * PX_PER_MIN }}>
                 <div
-                  className="absolute inset-0"
+                  className="relative h-full"
+                  style={{ 
+                    minWidth: '100%',
+                    width: (() => {
+                      const maxLanes = Math.max(...placed.map(l => l._lanes), 1);
+                      if (maxLanes > 4) {
+                        const MIN_CARD_WIDTH = 120;
+                        const GAP = 2;
+                        const BUTTON_COLUMN_WIDTH = 40;
+                        return `${maxLanes * MIN_CARD_WIDTH + (maxLanes - 1) * GAP + BUTTON_COLUMN_WIDTH}px`;
+                      }
+                      return '100%';
+                    })()
+                  }}
                   onDragOver={(e) => handleColumnDragOver(e, date)}
                   onDrop={(e) => handleColumnDrop(e, date)}
                   onDragLeave={handleColumnDragLeave}
@@ -409,19 +482,26 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   {TIME_SLOTS.map((t, i) => (
                     <div key={t} className="absolute left-0 right-0 border-t border-surface-border/60 dark:border-slate-700/60 z-0" style={{ top: i * HOUR_HEIGHT }} />
                   ))}
-                  {/* Quick add buttons each hour */}
-                  {TIME_SLOTS.map((t, i) => (
-                    <button
-                      key={`add-${date.toISOString()}-${t}`}
-                      onClick={(e) => { e.stopPropagation(); onAddLesson(date, t); }}
-                      className="absolute right-1 z-10 p-1 rounded-full text-text-tertiary dark:text-slate-400 hover:text-brand-primary dark:hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-                      style={{ top: i * HOUR_HEIGHT + 6 }}
-                      title={`Add lesson at ${t}`}
-                      aria-label={`Add lesson at ${t}`}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12M6 12h12" /></svg>
-                    </button>
-                  ))}
+                  
+                  {/* Quarter-hour grid lines for better time indication */}
+                  {TIME_SLOTS.flatMap((t, i) => [1, 2, 3].map(quarter => (
+                    <div key={`${t}-${quarter}`} className="absolute left-0 right-0 border-t border-surface-border/15 dark:border-slate-700/15 z-0" style={{ top: i * HOUR_HEIGHT + quarter * (HOUR_HEIGHT / 4) }} />
+                  )))}
+                  {/* Quick add buttons each hour - positioned in dedicated column */}
+                  <div className="absolute right-0 top-0 bottom-0 w-10 bg-surface-card/30 dark:bg-slate-800/30 border-l border-surface-border/30 dark:border-slate-700/30">
+                    {TIME_SLOTS.map((t, i) => (
+                      <button
+                        key={`add-${date.toISOString()}-${t}`}
+                        onClick={(e) => { e.stopPropagation(); onAddLesson(date, t); }}
+                        className="absolute left-1/2 transform -translate-x-1/2 z-10 p-1 rounded-full text-text-secondary dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
+                        style={{ top: i * HOUR_HEIGHT + 6 }}
+                        title={`Add lesson at ${t}`}
+                        aria-label={`Add lesson at ${t}`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12M6 12h12" /></svg>
+                      </button>
+                    ))}
+                  </div>
                   {/* Lunch shaded area */}
                   {(() => {
                     const l = toMinutes(LUNCH_BREAK_TIME);
@@ -437,24 +517,51 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     const student = studentMap.get(lesson.studentId);
                     const instructor = instructorMap.get(lesson.instructorId);
                     const hasNote = lesson.notes && lesson.notes.trim() !== '';
-                    // Horizontal lanes with tight 2px gap between lanes
+                    
+                    // Calculate minimum readable width and scrollable layout
+                    const MIN_CARD_WIDTH = 120; // Minimum readable width
+                    const BUTTON_COLUMN_WIDTH = 40;
                     const GAP = 2;
-                    const width = `calc((100% - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
-                    const left = `calc(${lesson._lane} * (100% / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
-        const startLabel = to12Hour(lesson.time);
-        const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
-        const cardH = Math.max(18, lesson._height);
-        const compact = cardH < 42;
-        return (
-            <div key={lesson.id} className="absolute p-1 z-20" style={{ top: lesson._top, left, width, height: cardH }}>
+                    
+                    // Determine layout strategy based on number of concurrent lessons
+                    let width, left;
+                    if (lesson._lanes > 4) {
+                      // Use fixed minimum width for scrollable layout when many lessons
+                      width = `${MIN_CARD_WIDTH}px`;
+                      left = `${lesson._lane * (MIN_CARD_WIDTH + GAP)}px`;
+                    } else {
+                      // Use percentage-based layout for fewer lessons
+                      const availableWidth = `(100% - ${BUTTON_COLUMN_WIDTH}px)`;
+                      width = `calc((${availableWidth} - ${(lesson._lanes - 1) * GAP}px) / ${lesson._lanes})`;
+                      left = `calc(${lesson._lane} * (${availableWidth} / ${lesson._lanes}) + ${lesson._lane * GAP}px)`;
+                    }
+                    
+                    const startLabel = to12Hour(lesson.time);
+                    const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
+                    const cardH = Math.max(18, lesson._height);
+                    const compact = cardH < 42;
+                    return (
+                      <div key={lesson.id} className="absolute p-1 z-20" style={{ top: lesson._top, left, width, height: cardH }}>
                         <button
                           onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
-                          style={{ backgroundColor: instructor?.color, height: '100%' }}
-              className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-[11px] leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
-                          title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
-                          aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Double click to edit.`}
+                          onMouseDown={(e) => {
+                            // Allow drag to start properly
+                            if (e.detail === 1) { // Single click
+                              e.currentTarget.setAttribute('data-allow-drag', 'true');
+                            }
+                          }}
+                          style={{ backgroundColor: instructor?.color || '#6B7280', height: '100%' }}
+                          className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
+                          title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDrag to move • Double-click to edit`}
+                          aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Drag to move or double click to edit.`}
                           draggable="true"
-                          onDragStart={(e) => onLessonDragStart(e, lesson)}
+                          onDragStart={(e) => {
+                            e.currentTarget.style.opacity = '0.5';
+                            onLessonDragStart(e, lesson);
+                          }}
+                          onDragEnd={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                          }}
                         >
                           {/* left accent stripe */}
                           <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.35), rgba(255,255,255,0.35) 2px, transparent 2px, transparent 4px)' }} />
@@ -464,7 +571,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 <span className="font-semibold truncate mr-2">{student?.name}</span>
                                 {hasNote && <NoteIcon />}
                               </div>
-                              <div className="text-[10px] opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
+                              <div className="text-xs opacity-90 truncate">R{lesson.roomId} • {startLabel}–{endLabel}</div>
                             </>
                           ) : (
                             <>
@@ -479,6 +586,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       </div>
                     );
                   })}
+                  
+                  {/* Scroll indicator for desktop */}
+                  {(() => {
+                    const maxLanes = Math.max(...placed.map(l => l._lanes), 1);
+                    if (maxLanes > 4) {
+                      return (
+                        <div className="absolute top-2 right-2 bg-black/20 text-white text-[10px] px-2 py-1 rounded-full z-30 pointer-events-none">
+                          {maxLanes} lessons → scroll
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             );

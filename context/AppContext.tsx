@@ -25,6 +25,7 @@ export type StudentEnrollmentData = {
     addressLine2?: string;
   };
   guardianFullName?: string;
+  guardianRelationship?: string;
   guardianPhone?: string;
   guardianEmail?: string;
   guardianFacebook?: string;
@@ -729,6 +730,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       gender: studentData.gender,
       address: studentData.address,
       guardianFullName: studentData.guardianFullName,
+      guardianRelationship: studentData.guardianRelationship,
       guardianPhone: studentData.guardianPhone,
       guardianEmail: studentData.guardianEmail,
       guardianFacebook: studentData.guardianFacebook,

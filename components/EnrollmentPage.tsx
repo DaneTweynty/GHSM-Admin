@@ -31,6 +31,7 @@ interface EnrollmentPageProps {
       addressLine2?: string;
     };
     guardianFullName?: string;
+    guardianRelationship?: string;
     guardianPhone?: string;
     guardianEmail?: string;
     guardianFacebook?: string;
@@ -495,6 +496,29 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
     }
   }, [isMinor, primaryGuardian, secondaryGuardian, isExistingStudent, availableInstructors, instrument, age, birthdate]);
 
+  // Initial validation effect to ensure guardian errors show immediately for minors
+  useEffect(() => {
+    if (isMinor) {
+      setFieldErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        
+        // Auto-validate guardian name for minors
+        const guardianNameError = validateField('primaryGuardianName', primaryGuardian.fullName);
+        if (guardianNameError) {
+          newErrors.primaryGuardianName = guardianNameError;
+        }
+        
+        // Auto-validate guardian relationship for minors
+        const guardianRelationshipError = validateField('primaryGuardianRelationship', primaryGuardian.relationship);
+        if (guardianRelationshipError) {
+          newErrors.primaryGuardianRelationship = guardianRelationshipError;
+        }
+        
+        return newErrors;
+      });
+    }
+  }, [isMinor, validateField, primaryGuardian.fullName, primaryGuardian.relationship]);
+
   // Validate all fields and return errors object
   const validateAllFields = (): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -611,6 +635,17 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   // Helper to get field error if it should be shown
   const getFieldError = (fieldName: string): string => {
     if (!shouldShowFieldError(fieldName)) return '';
+    
+    // For guardian fields that should show immediately for minors, calculate error on demand
+    if (isMinor && fieldName === 'primaryGuardianName' && !fieldErrors[fieldName]) {
+      const error = validateField('primaryGuardianName', primaryGuardian.fullName);
+      if (error) return error;
+    }
+    if (isMinor && fieldName === 'primaryGuardianRelationship' && !fieldErrors[fieldName]) {
+      const error = validateField('primaryGuardianRelationship', primaryGuardian.relationship);
+      if (error) return error;
+    }
+    
     return fieldErrors[fieldName] || '';
   };
 
@@ -912,6 +947,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
             addressLine2: address.addressLine2 || undefined,
           },
           guardianFullName: primaryGuardian.fullName || undefined,
+          guardianRelationship: primaryGuardian.relationship || undefined,
           guardianPhone: primaryGuardian.phone ? normalizePhone(primaryGuardian.phone) : undefined,
           guardianEmail: primaryGuardian.email || undefined,
           guardianFacebook: primaryGuardian.facebook || undefined,
