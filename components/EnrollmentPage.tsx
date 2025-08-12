@@ -3,9 +3,9 @@ import type { Instructor, Student } from '../types';
 import { Card } from './Card';
 import { control } from './ui';
 import ThemedSelect from './ThemedSelect';
-import { AddressInput } from './AddressInput';
+import { EnhancedAddressInput } from './AddressInput.enhanced';
 import { GuardianManagement } from './GuardianInput';
-import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService';
+import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService.enhanced';
 import { INSTRUMENT_OPTIONS } from '../constants';
 
 interface EnrollmentPageProps {
@@ -285,7 +285,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   // Calculate age from birthdate
   useEffect(() => {
     if (birthdate) {
-      const calculatedAgeValue = calculateAge(new Date(birthdate));
+      const calculatedAgeValue = calculateAge(birthdate);
       setCalculatedAge(calculatedAgeValue);
       setAge(calculatedAgeValue.toString());
     }
@@ -1259,7 +1259,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
               <p className="text-sm text-text-secondary dark:text-slate-400 -mt-2">
                 Complete address information for records and emergency contact.
               </p>
-              <AddressInput
+              <EnhancedAddressInput
                 address={address}
                 onChange={handleAddressChange}
                 disabled={isExistingStudent}

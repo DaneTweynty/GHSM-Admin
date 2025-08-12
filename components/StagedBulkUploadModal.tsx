@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card } from './Card';
 import { ICONS, INSTRUMENT_OPTIONS } from '../constants';
 import type { Student, Instructor } from '../types';
-import { AddressInput } from './AddressInput';
+import { EnhancedAddressInput } from './AddressInput.enhanced';
 import { GuardianManagement } from './GuardianInput';
-import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService';
+import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService.enhanced';
 import ThemedSelect from './ThemedSelect';
 
 // Staging data structures
@@ -110,6 +110,8 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const [calculatedAge, setCalculatedAge] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // State for forcing address reset
+  const [addressResetKey, setAddressResetKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate age from birthdate
@@ -133,6 +135,9 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
         setValidationErrors([]);
         setCalculatedAge(0);
         setIsSubmitting(false);
+        
+        // Force address component reset by incrementing key
+        setAddressResetKey(prev => prev + 1);
         
         // Pre-fill form with CSV data
         const resetForm = {
@@ -1203,8 +1208,8 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                   {/* Address Information */}
                   <div className="space-y-4">
                     <h5 className="font-medium text-text-primary dark:text-slate-100">Address Information</h5>
-                    <AddressInput
-                      key={`address-${currentStudentIndex}`}
+                    <EnhancedAddressInput
+                      key={`address-${currentStudentIndex}-${addressResetKey}`}
                       address={enrollmentForm.address}
                       onChange={handleAddressChange}
                       disabled={false}

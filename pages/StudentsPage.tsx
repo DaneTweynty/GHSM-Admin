@@ -1,6 +1,7 @@
 import React from 'react';
 import { StudentsList } from '../components/StudentsList';
 import { useApp } from '../context/AppContext';
+import type { Student } from '../types';
 
 export const StudentsPage: React.FC = () => {
   const { 
@@ -20,7 +21,7 @@ export const StudentsPage: React.FC = () => {
     console.log('Add student clicked');
   };
 
-  const handleBulkAdd = (students: Partial<any>[]) => {
+  const handleBulkAdd = async (students: Partial<Student>[]) => {
     // TODO: Implement bulk add functionality
     console.log('Bulk add students:', students);
   };
@@ -35,7 +36,7 @@ export const StudentsPage: React.FC = () => {
       onToggleStatus={handleToggleStudentStatus}
       onEditSessions={handleOpenEditSessionModal}
       onAddStudent={handleAddStudent}
-      onBulkAddStudents={handleBulkAdd}
+      onBatchEnrollment={handleBulkAdd}
     />
   );
 };
