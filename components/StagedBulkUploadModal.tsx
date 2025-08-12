@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Card } from './Card';
-import { ICONS, INSTRUMENT_OPTIONS } from '../constants';
+import { INSTRUMENT_OPTIONS } from '../constants';
 import type { Student, Instructor } from '../types';
 import { EnhancedAddressInput } from './AddressInput.enhanced';
 import { GuardianManagement } from './GuardianInput';
-import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService.enhanced';
+import { calculateAge } from '../services/philippineAddressService.enhanced';
 import ThemedSelect from './ThemedSelect';
 
 // Staging data structures
@@ -59,7 +58,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   
   // Drag and drop state
   const [isDragOver, setIsDragOver] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
+  const [_dragCounter, setDragCounter] = useState(0);
   
   // Enrollment form state for current student
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -110,9 +109,14 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const [calculatedAge, setCalculatedAge] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  // State for forcing address reset
+  // State for forcing component resets
   const [addressResetKey, setAddressResetKey] = useState(0);
+  const [guardianResetKey, setGuardianResetKey] = useState(0);
+  const [formResetKey, setFormResetKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Ref for scrolling to top
+  const formContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate age from birthdate
   useEffect(() => {
@@ -125,51 +129,82 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
 
   const isStudentMinor = calculatedAge > 0 && calculatedAge < 18;
 
+  // Comprehensive reset function for moving between students
+  const resetFormForNextStudent = () => {
+    console.warn('Resetting form for next student...');
+    
+    // Reset all form state keys to force component re-renders
+    setAddressResetKey(prev => prev + 1);
+    setGuardianResetKey(prev => prev + 1);
+    setFormResetKey(prev => prev + 1);
+    
+    // Clear all validation errors and field errors
+    setFieldErrors({});
+    setValidationErrors([]);
+    setCalculatedAge(0);
+    setIsSubmitting(false);
+    
+    // Scroll to top of form container
+    if (formContainerRef.current) {
+      formContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+    
+    // Reset enrollment form to clean state
+    const cleanForm = {
+      name: '',
+      nickname: '',
+      birthdate: '',
+      age: '',
+      gender: '' as 'Male' | 'Female' | '',
+      email: '',
+      contactNumber: '',
+      facebook: '',
+      instrument: '',
+      instructorId: '',
+      address: {
+        country: 'Philippines',
+        province: '',
+        city: '',
+        barangay: '',
+        addressLine1: '',
+        addressLine2: '',
+      },
+      primaryGuardian: {
+        fullName: '',
+        relationship: '',
+        phone: '',
+        email: '',
+        facebook: '',
+      },
+      secondaryGuardian: undefined,
+    };
+    
+    setEnrollmentForm(cleanForm);
+  };
+
   // Pre-fill form when current student changes
   useEffect(() => {
     if (stagedUpload && step === 'completion') {
       const currentStudent = stagedUpload.students[currentStudentIndex];
       if (currentStudent) {
-        // Reset all form state first
-        setFieldErrors({});
-        setValidationErrors([]);
-        setCalculatedAge(0);
-        setIsSubmitting(false);
+        // First reset everything to clean state
+        resetFormForNextStudent();
         
-        // Force address component reset by incrementing key
-        setAddressResetKey(prev => prev + 1);
-        
-        // Pre-fill form with CSV data
-        const resetForm = {
-          name: currentStudent.csvData.fullName,
-          nickname: currentStudent.csvData.nickname || '',
-          birthdate: currentStudent.csvData.birthdate || '',
-          age: '',
-          gender: (currentStudent.csvData.gender || '') as 'Male' | 'Female' | '',
-          email: '',
-          contactNumber: '',
-          facebook: '',
-          instrument: currentStudent.csvData.instrument,
-          instructorId: '',
-          address: {
-            country: 'Philippines',
-            province: '',
-            city: '',
-            barangay: '',
-            addressLine1: '',
-            addressLine2: '',
-          },
-          primaryGuardian: {
-            fullName: '',
-            relationship: '',
-            phone: '',
-            email: '',
-            facebook: '',
-          },
-          secondaryGuardian: undefined,
-        };
-        
-        setEnrollmentForm(resetForm);
+        // Small delay to ensure reset is complete before pre-filling
+        setTimeout(() => {
+          const csvData = currentStudent.csvData;
+          setEnrollmentForm(prev => ({
+            ...prev,
+            name: csvData.fullName || '',
+            nickname: csvData.nickname || '',
+            birthdate: csvData.birthdate || '',
+            gender: (csvData.gender || '') as 'Male' | 'Female' | '',
+            instrument: csvData.instrument || '',
+          }));
+        }, 50);
       }
     }
   }, [currentStudentIndex, stagedUpload, step]);
@@ -234,7 +269,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   };
 
   // Form handlers
-  const handleFormChange = (field: string, value: any) => {
+  const handleFormChange = (field: string, value: string | boolean | number) => {
     setEnrollmentForm(prev => ({
       ...prev,
       [field]: value
@@ -556,7 +591,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
 
       setStagedUpload(staged);
       setStep('staging');
-    } catch (error) {
+    } catch (_error) {
       setErrors(['Error reading CSV file. Please check the format.']);
     } finally {
       setIsProcessing(false);
@@ -622,27 +657,13 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
       const nextIndex = currentStudentIndex + 1;
       if (nextIndex < stagedUpload.totalCount) {
         setCurrentStudentIndex(nextIndex);
-        
-        // Force address clearing by setting a timeout to ensure state has updated
-        setTimeout(() => {
-          setEnrollmentForm(prev => ({
-            ...prev,
-            address: {
-              country: 'Philippines',
-              province: '',
-              city: '',
-              barangay: '',
-              addressLine1: '',
-              addressLine2: '',
-            }
-          }));
-        }, 100);
+        // The useEffect will handle the reset when currentStudentIndex changes
       } else {
         // All students processed, proceed to batch commit
         await handleBatchCommit(updatedStudents);
       }
-    } catch (error) {
-      console.error('Error completing student enrollment:', error);
+    } catch (_error) {
+      console.error('Error completing student enrollment:', _error);
       setValidationErrors(['Failed to complete student enrollment. Please try again.']);
     } finally {
       setIsSubmitting(false);
@@ -667,21 +688,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
     const nextIndex = currentStudentIndex + 1;
     if (nextIndex < stagedUpload.totalCount) {
       setCurrentStudentIndex(nextIndex);
-      
-      // Force address clearing by setting a timeout to ensure state has updated
-      setTimeout(() => {
-        setEnrollmentForm(prev => ({
-          ...prev,
-          address: {
-            country: 'Philippines',
-            province: '',
-            city: '',
-            barangay: '',
-            addressLine1: '',
-            addressLine2: '',
-          }
-        }));
-      }, 100);
+      // The useEffect will handle the reset when currentStudentIndex changes
     } else {
       // All students processed, check if any were completed
       const completedStudents = updatedStudents.filter(s => s.status === 'completed');
@@ -697,8 +704,9 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const handleBatchCommit = async (students: StagedStudent[]) => {
     const completedStudents = students.filter(s => s.status === 'completed' && s.enrollmentData);
     
-    console.log('Batch commit - Total students:', students.length);
-    console.log('Batch commit - Completed students:', completedStudents.length);
+    // Debug information for batch commit
+    console.warn('Batch commit - Total students:', students.length);
+    console.warn('Batch commit - Completed students:', completedStudents.length);
     
     if (completedStudents.length === 0) {
       setErrors(['No students were completed for enrollment.']);
@@ -722,7 +730,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
         creditBalance: 0
       }));
 
-      console.log('Students to enroll:', studentsToEnroll);
+      console.warn('Students to enroll:', studentsToEnroll);
       await onBatchEnrollment(studentsToEnroll);
       setStep('success');
     } catch (error) {
@@ -795,7 +803,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div ref={formContainerRef} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           {step === 'upload' && (
             <div className="space-y-6">
               {/* Instructions */}
@@ -940,7 +948,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
-                      {stagedUpload.students.map((student, index) => {
+                      {stagedUpload.students.map((student, _index) => {
                         const age = student.csvData.birthdate ? calculateAge(student.csvData.birthdate) : null;
                         const needsGuardian = age !== null && age < 18;
                         
@@ -1012,7 +1020,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
               </div>
 
               {/* Enrollment Form Integration Point */}
-              <div className="bg-surface-card dark:bg-slate-800 rounded-lg border border-surface-border dark:border-slate-700 p-6">
+              <div key={`form-${currentStudentIndex}-${formResetKey}`} className="bg-surface-card dark:bg-slate-800 rounded-lg border border-surface-border dark:border-slate-700 p-6">
                 <h4 className="font-medium text-text-primary dark:text-slate-100 mb-4">
                   Complete Required Information
                 </h4>
@@ -1227,6 +1235,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                     <div className="space-y-4">
                       <h5 className="font-medium text-text-primary dark:text-slate-100">Guardian Information</h5>
                       <GuardianManagement
+                        key={`guardian-${currentStudentIndex}-${guardianResetKey}`}
                         primaryGuardian={enrollmentForm.primaryGuardian}
                         secondaryGuardian={enrollmentForm.secondaryGuardian}
                         onPrimaryGuardianChange={handlePrimaryGuardianChange}
