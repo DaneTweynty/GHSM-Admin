@@ -112,14 +112,18 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   // Load barangays when city changes  
   useEffect(() => {
     const loadBarangays = async () => {
+      console.log('Loading barangays for city:', selectedCity, 'Cities available:', cities.length);
       if (selectedCity && cities.length > 0) {
         try {
           setLoadingBarangays(true);
           const cityData = cities.find(c => c.name === selectedCity);
+          console.log('Found city data:', cityData);
           if (cityData) {
             const barangaysData = await PhilippineAddressService.getBarangaysByCity(cityData.code);
+            console.log('Loaded barangays:', barangaysData.length, 'barangays for city code:', cityData.code);
             setBarangays(barangaysData);
           } else {
+            console.log('City data not found for:', selectedCity);
             setBarangays([]);
           }
         } catch (error) {
@@ -129,6 +133,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           setLoadingBarangays(false);
         }
       } else {
+        console.log('Clearing barangays - selectedCity:', selectedCity, 'cities.length:', cities.length);
         setBarangays([]);
         setLoadingBarangays(false);
       }

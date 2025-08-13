@@ -5,6 +5,8 @@ import { Card } from './Card';
 import { ICONS, BILLING_CYCLE } from '../constants';
 import { StudentDetailView } from './StudentDetailView';
 import StagedBulkUploadModal from './StagedBulkUploadModal';
+import { SearchBar } from './SearchBar';
+import { PaginationControls } from './PaginationControls';
 
 interface StudentsListProps {
   students: Student[];
@@ -153,111 +155,15 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           </div>
 
           {/* Search section */}
-          <div className="mb-4">
-            <label htmlFor="student-search" className="sr-only">Search Students</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-text-tertiary dark:text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                name="student-search"
-                id="student-search"
-                className={`${control} pl-10 sm:text-sm`}
-                placeholder="Search by name, instrument, or student ID..."
-                value={searchTerm}
-                onChange={e => handleSearchChange(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => handleSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Pagination Controls and Page Size Selector */}
-          {filteredStudents.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-              <div className="flex items-center space-x-2">
-                <label htmlFor="page-size" className="text-sm text-text-secondary dark:text-slate-400">
-                  Show:
-                </label>
-                <select
-                  id="page-size"
-                  value={studentsPerPage}
-                  onChange={(e) => {
-                    setStudentsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100"
-                >
-                  <option value={5}>5 students</option>
-                  <option value={10}>10 students</option>
-                  <option value={25}>25 students</option>
-                  <option value={50}>50 students</option>
-                  <option value={100}>100 students</option>
-                </select>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={goToPrevious}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 7) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNumber = totalPages - 6 + i;
-                      } else {
-                        pageNumber = currentPage - 3 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => goToPage(pageNumber)}
-                          className={`px-3 py-1 text-sm border rounded transition-colors ${
-                            currentPage === pageNumber
-                              ? 'bg-brand-primary text-white border-brand-primary'
-                              : 'border-surface-border dark:border-slate-600 bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 hover:bg-surface-hover dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={goToNext}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <SearchBar
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by name, instrument, or student ID..."
+            showResultsCount={true}
+            totalResults={students.length}
+            filteredResults={filteredStudents.length}
+            itemName="students"
+          />
         </div>
         
         <div className="overflow-x-auto">
@@ -458,6 +364,26 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls at the bottom */}
+        {filteredStudents.length > 0 && (
+          <div className="px-4 py-4 sm:px-6 border-t border-surface-border dark:border-slate-700">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={studentsPerPage}
+              totalItems={filteredStudents.length}
+              itemName="students"
+              onPageChange={goToPage}
+              onItemsPerPageChange={(newSize) => {
+                setStudentsPerPage(newSize);
+                setCurrentPage(1);
+              }}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+            />
+          </div>
+        )}
 
         {/* Staged Bulk Upload Modal */}
         {showBulkUpload && (

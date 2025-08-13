@@ -4,6 +4,8 @@ import { Card } from './Card';
 import { TeacherDetailView } from './TeacherDetailView';
 import { InstructorProfilePopover } from './InstructorProfileModal';
 import { ICONS } from '../constants';
+import { SearchBar } from './SearchBar';
+import { PaginationControls } from './PaginationControls';
 
 interface TeachersListProps {
   instructors: Instructor[];
@@ -48,7 +50,7 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(12); // 12 instructors per page
+  const [pageSize, setPageSize] = useState(12); // 12 instructors per page
   
   // Filter instructors based on search query
   const filteredInstructors = instructors.filter(instructor => {
@@ -105,18 +107,6 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
     setExpandedInstructorId(null); // Close any expanded details when changing pages
   };
 
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      handlePageChange(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      handlePageChange(currentPage + 1);
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto"> {/* Optimal container size */}
       <Card>
@@ -144,46 +134,36 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
           </div>
 
           {/* Search section */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-text-tertiary dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Search by name, specialty, or status..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="block w-full pl-10 pr-10 py-2 border border-surface-border dark:border-slate-600 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-surface-input dark:bg-slate-700 text-text-primary dark:text-slate-100 placeholder-text-tertiary dark:placeholder-slate-500 text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            
-            {/* Search results summary */}
-            {searchQuery && (
-              <div className="text-sm text-text-secondary dark:text-slate-400">
-                {filteredInstructors.length === 0 ? (
-                  <span className="text-status-red">No instructors found</span>
-                ) : (
-                  <span>
-                    {filteredInstructors.length} result{filteredInstructors.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+          <SearchBar
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+              setExpandedInstructorId(null);
+            }}
+            placeholder="Search by name, specialty, or status..."
+            showResultsCount={true}
+            totalResults={instructors.length}
+            filteredResults={filteredInstructors.length}
+            itemName="instructors"
+          />
+          
+          {/* Pagination Controls */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={pageSize}
+            totalItems={sortedInstructors.length}
+            itemName="instructors"
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+              setExpandedInstructorId(null);
+            }}
+            showPageSizeSelector={true}
+            pageSizeOptions={[5, 10, 15, 20, 25]}
+          />
         </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
@@ -331,63 +311,6 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
             )}
           </tbody>
         </table>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-surface-border dark:border-slate-700">
-            <div className="flex items-center text-sm text-text-secondary dark:text-slate-400">
-              <span>Page {currentPage} of {totalPages}</span>
-              <span className="ml-4">
-                Showing {startIndex + 1}-{Math.min(endIndex, sortedInstructors.length)} of {sortedInstructors.length} instructors
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-                className="px-3 py-1 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700"
-              >
-                Previous
-              </button>
-              
-              {/* Page numbers */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                      currentPage === pageNum
-                        ? 'bg-brand-primary text-white'
-                        : 'bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
       
       {/* Profile Modal */}
