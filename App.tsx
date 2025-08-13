@@ -27,7 +27,7 @@ const AppShell: React.FC = () => {
   const {
     view, setView,
     isLoading, error,
-  theme, fontSize, handleThemeToggle, setThemeMode, handleFontSizeChange,
+    theme, fontSize, handleThemeToggle, setThemeMode, handleFontSizeChange,
   handleInstallRequest, installPromptEvent,
     handleRequestResetData,
   isEditModalOpen, editingLesson, isAddMode, handleCloseEditModal, handleUpdateLesson, handleMoveLessonToTrash,
@@ -63,6 +63,20 @@ const AppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-main dark:bg-slate-900 text-text-primary dark:text-slate-200 font-sans flex flex-col">
+      {/* Skip Links for Accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-brand-primary focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#primary-nav"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-32 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-brand-primary focus:text-white focus:rounded-md focus:shadow-lg"
+      >
+        Skip to navigation
+      </a>
+      
       <Toaster
         position="top-right"
         toastOptions={{
@@ -81,11 +95,11 @@ const AppShell: React.FC = () => {
         onFontSizeChange={handleFontSizeChange}
         onRequestResetData={handleRequestResetData}
         installPromptEvent={installPromptEvent}
-  onInstallRequest={handleInstallRequest}
+        onInstallRequest={handleInstallRequest}
       />
       {view === 'chat' ? (
         // Chat page takes full remaining height (viewport height minus header)
-        <div className="h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-4rem)]" id="main-content">
           <Suspense fallback={
             <div className="flex justify-center items-center h-96">
               <CardSkeleton lines={4} />
@@ -96,7 +110,7 @@ const AppShell: React.FC = () => {
         </div>
       ) : (
         // Other pages use full width with responsive padding
-        <main className="p-4 sm:p-6 lg:p-8 w-full">
+        <main className="p-4 sm:p-6 lg:p-8 w-full" id="main-content">
           <Suspense fallback={
             <div className="grid gap-6">
               <CardSkeleton lines={3} />

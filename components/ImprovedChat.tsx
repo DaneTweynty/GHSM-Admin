@@ -362,7 +362,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-hidden">
           {conversations.map((conversation) => {
             const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
             const lastMessage = messages[conversation.id]?.slice(-1)[0];
@@ -504,7 +504,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 space-y-4">
               {activeMessages.map((message) => (
                 <div
                   key={message.id}

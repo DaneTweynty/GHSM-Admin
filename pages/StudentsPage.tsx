@@ -10,19 +10,14 @@ export const StudentsPage: React.FC = () => {
     billings, 
     handleMarkAttendance, 
     handleToggleStudentStatus, 
-    handleOpenEditSessionModal
-    // handleOpenEnrollmentModal,
-    // handleBulkAddStudents
+    handleOpenEditSessionModal,
+    handleBulkEnrollStudents,
+    setView
   } = useApp();
   
   const handleAddStudent = () => {
-    // TODO: Implement add student functionality
-    console.log('Add student clicked');
-  };
-
-  const handleBulkAdd = (students: Partial<any>[]) => {
-    // TODO: Implement bulk add functionality
-    console.log('Bulk add students:', students);
+    // Navigate to enrollment page
+    setView('enrollment');
   };
   
   return (
@@ -35,7 +30,7 @@ export const StudentsPage: React.FC = () => {
       onToggleStatus={handleToggleStudentStatus}
       onEditSessions={handleOpenEditSessionModal}
       onAddStudent={handleAddStudent}
-      onBulkAddStudents={handleBulkAdd}
+      onBatchEnrollment={handleBulkEnrollStudents}
     />
   );
 };

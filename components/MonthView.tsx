@@ -87,7 +87,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-hidden">
       <div className="grid grid-cols-7 gap-px bg-surface-border dark:bg-slate-700 border border-surface-border dark:border-slate-700 rounded-md overflow-hidden min-w-[980px]">
       {DAYS_OF_WEEK_SHORT.map(day => (
         <div key={day} className="text-center font-medium text-text-secondary dark:text-slate-400 text-xs sm:text-sm py-2 bg-surface-header dark:bg-slate-800">
@@ -123,7 +123,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   </button>
               )}
             </div>
-            <div className="mt-1 space-y-1 overflow-y-auto flex-grow">
+            <div className="mt-1 space-y-1 overflow-y-auto scrollbar-hidden flex-grow">
               {isCurrentMonth && lessonsForDay.map(lesson => {
                   const student = studentMap.get(lesson.studentId);
                   const instructor = instructorMap.get(lesson.instructorId);

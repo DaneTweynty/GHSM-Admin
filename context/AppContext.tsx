@@ -4,6 +4,7 @@ import type { Student, Instructor, Lesson, Billing, View, CalendarView, Payment,
 import { BILLING_CYCLE, LESSON_PRICE, EVENT_COLORS, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, floorToQuarter, roundToQuarter, rangesOverlap, toMinutes } from '../utils/time';
 import { generateSchedules } from '../services/scheduleService';
+import { generateAvatarUrl } from '../utils/avatarUtils';
 
 export type StudentEnrollmentData = {
   name: string;
@@ -148,6 +149,9 @@ export type AppState = {
     guardianEmail?: string;
     guardianFacebook?: string;
   }) => void;
+
+  // Add: bulk enrollment function
+  handleBulkEnrollStudents: (studentsData: Partial<Student>[]) => Promise<void>;
 
   enrollmentSuccessMessage: string | null;
   installPromptEvent: (Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) | null;
@@ -736,11 +740,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       guardianFacebook: studentData.guardianFacebook,
       secondaryGuardian: studentData.secondaryGuardian,
       status: 'active',
-      profilePictureUrl: undefined,
+      profilePictureUrl: generateAvatarUrl(studentData.name),
       parentStudentId: studentData.parentStudentId,
     };
     setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)));
   }, [getNewStudentIdNumber]);
+
+  const handleBulkEnrollStudents = useCallback(async (studentsData: Partial<Student>[]) => {
+    const newStudents: Student[] = studentsData.map(studentData => ({
+      id: `student-${Date.now()}-${Math.random()}`,
+      studentIdNumber: getNewStudentIdNumber(),
+      name: studentData.name || '',
+      instrument: studentData.instrument || '',
+      instructorId: studentData.instructorId || '',
+      sessionsAttended: 0,
+      sessionsBilled: 0,
+      nickname: studentData.nickname,
+      birthdate: studentData.birthdate,
+      age: studentData.age,
+      email: studentData.email,
+      contactNumber: studentData.contactNumber,
+      facebook: studentData.facebook,
+      gender: studentData.gender || 'Male',
+      address: studentData.address,
+      guardianFullName: studentData.guardianFullName,
+      guardianRelationship: studentData.guardianRelationship,
+      guardianOccupation: studentData.guardianOccupation,
+      guardianPhone: studentData.guardianPhone,
+      guardianEmail: studentData.guardianEmail,
+      guardianFacebook: studentData.guardianFacebook,
+      secondaryGuardian: studentData.secondaryGuardian,
+      status: 'active',
+      profilePictureUrl: generateAvatarUrl(studentData.name || 'Student'),
+      parentStudentId: studentData.parentStudentId,
+      creditBalance: 0,
+    }));
+    
+    setStudents(prev => [...prev, ...newStudents].sort((a, b) => a.name.localeCompare(b.name)));
+    pushTx('student.enroll', 'success', `${newStudents.length} students enrolled successfully`, { count: newStudents.length });
+  }, [getNewStudentIdNumber, pushTx]);
 
   const handleToggleStudentStatus = useCallback((studentId: string) => {
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, status: student.status === 'active' ? 'inactive' : 'active' } : student)));
@@ -796,15 +834,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleSaveInstructor = useCallback((instructorData: Instructor) => {
-    if (isAddInstructorMode) {
-      const newInstructor: Instructor = { ...instructorData, id: `inst-${Date.now()}`, status: 'active' };
-      setInstructors(prev => [...prev, newInstructor].sort((a, b) => a.name.localeCompare(b.name)));
-    pushTx('instructor.save', 'success', 'Instructor added', { instructorId: newInstructor.id });
-    } else {
-      setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorData.id ? instructorData : inst)));
-    pushTx('instructor.save', 'success', 'Instructor updated', { instructorId: instructorData.id });
+    try {
+      if (isAddInstructorMode) {
+        const newInstructor: Instructor = { ...instructorData, id: `inst-${Date.now()}`, status: 'active' };
+        setInstructors(prev => [...prev, newInstructor].sort((a, b) => a.name.localeCompare(b.name)));
+        pushTx('instructor.save', 'success', `Instructor "${instructorData.name}" has been successfully added!`, { instructorId: newInstructor.id });
+      } else {
+        setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorData.id ? instructorData : inst)));
+        pushTx('instructor.save', 'success', `Instructor "${instructorData.name}" has been successfully updated!`, { instructorId: instructorData.id });
+      }
+      handleCloseEditInstructorModal();
+    } catch (error) {
+      const action = isAddInstructorMode ? 'add' : 'update';
+      pushTx('instructor.save', 'error', `Failed to ${action} instructor. Please try again.`, { error: error instanceof Error ? error.message : 'Unknown error' });
     }
-    handleCloseEditInstructorModal();
   }, [isAddInstructorMode, handleCloseEditInstructorModal, pushTx]);
 
   const handleRequestAdminAction = useCallback((action: AdminAction) => {
@@ -834,10 +877,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       case 'enrollStudent': {
         const { studentData } = adminActionToConfirm;
         handleEnrollStudent(studentData);
-  setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
-  // Let page banners still work if any component uses the message
-  setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
-  pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);
+        setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
+        // Navigate to students module after successful enrollment
+        setView('students');
+        // Let page banners still work if any component uses the message
+        setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
+        pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);
         break;
       }
       case 'resetData':
@@ -940,6 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // expose new handler
   handleUpdateBilling,
   handleUpdateStudentContact,
+  handleBulkEnrollStudents,
   enrollmentSuccessMessage, installPromptEvent, handleInstallRequest,
   isDragging, handleDropOnTrash,
     timeSlots,

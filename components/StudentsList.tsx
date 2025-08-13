@@ -29,10 +29,31 @@ const getInitials = (name: string) => {
 
 const Avatar: React.FC<{ student: Student }> = ({ student }) => {
     if (student.profilePictureUrl) {
-        return <img src={student.profilePictureUrl} alt={student.name} className="h-9 w-9 rounded-full object-cover shrink-0" />;
+        return (
+            <img 
+                src={student.profilePictureUrl} 
+                alt={student.name} 
+                className="h-9 w-9 rounded-full object-cover shrink-0 border border-surface-border dark:border-slate-600" 
+                onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    const initials = getInitials(student.name);
+                    const colorIndex = (student.name.charCodeAt(0) || 0) % 6;
+                    const colors = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200'];
+                    const textColors = ['text-red-800', 'text-blue-800', 'text-green-800', 'text-yellow-800', 'text-purple-800', 'text-pink-800'];
+                    
+                    // Replace img with div
+                    const div = document.createElement('div');
+                    div.className = `h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${colors[colorIndex]} ${textColors[colorIndex]}`;
+                    div.innerHTML = `<span class="text-xs font-bold">${initials}</span>`;
+                    target.parentNode?.replaceChild(div, target);
+                }}
+            />
+        );
     }
+    
+    // Fallback initials avatar
     const initials = getInitials(student.name);
-    // Simple hash to get a color - not a real instructor color
     const colorIndex = (student.name.charCodeAt(0) || 0) % 6;
     const colors = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200'];
     const textColors = ['text-red-800', 'text-blue-800', 'text-green-800', 'text-yellow-800', 'text-purple-800', 'text-pink-800'];
@@ -117,7 +138,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           {/* Header with title and action buttons */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Student Roster</h2>
+              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Student List</h2>
               <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
                 Manage student enrollments and track progress
                 {filteredStudents.length > 0 && (
@@ -166,7 +187,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           />
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-hidden">
           <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700 md:table">
             <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
               <tr>

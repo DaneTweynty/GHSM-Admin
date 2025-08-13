@@ -20,6 +20,38 @@
   background: rgba(150, 150, 150, 0.5);
 }
 
+/* Hidden scrollbar utility - maintains scrollability but hides scrollbar */
+.scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Invisible but functional scrollbar - shows on hover */
+.scrollbar-invisible {
+  scrollbar-width: thin; /* Firefox */
+}
+.scrollbar-invisible::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.scrollbar-invisible::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-invisible::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.scrollbar-invisible:hover::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.35);
+}
+.scrollbar-invisible:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.5);
+}
+
 /* Custom scrollbar utilities for better styling */
 .scrollbar-thin {
   scrollbar-width: thin;
@@ -55,14 +87,184 @@
 
 a, button { outline-offset: 2px; }
 
-/* Comfort light adjustments (activated when html has class 'comfort') */
-.comfort .bg-surface-main { background-color: #F1F4F8 !important; }
-.comfort .bg-surface-card { background-color: #F9FBFF !important; }
-.comfort .bg-surface-header { background-color: #E9EFF6 !important; }
-.comfort .bg-surface-input { background-color: #ECF1F7 !important; }
-.comfort .border-surface-border { border-color: #C3CFDE !important; }
-.comfort .text-text-primary { color: #253043 !important; }
-.comfort .text-text-secondary { color: #58667B !important; }
+/* Enhanced Theme Styles - WCAG AA Compliant */
+
+/* Light Theme Base Styles */
+:root {
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #6B7280;
+  --color-surface-main: #FFFFFF;
+  --color-surface-card: #F8FAFC;
+  --color-surface-header: #F1F5F9;
+  --color-surface-border: #CBD5E1;
+  --color-brand-primary: #2563EB;
+  --color-brand-primary-hover: #1D4ED8;
+}
+
+/* Comfort Theme Variables */
+.comfort {
+  --color-surface-main: #FEFEFE;
+  --color-surface-card: #F9FAFB;
+  --color-surface-header: #F3F4F6;
+  --color-surface-border: #D1D5DB;
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #4B5563;
+}
+
+/* Dark Theme Variables */
+.dark {
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-tertiary: #9CA3AF;
+  --color-surface-main: #111827;
+  --color-surface-card: #1F2937;
+  --color-surface-header: #374151;
+  --color-surface-border: #4B5563;
+}
+
+/* Enhanced Button Styles */
+.btn-primary {
+  background-color: var(--color-brand-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-brand-primary-hover);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:focus {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-surface-border);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-surface-card);
+  border-color: var(--color-text-secondary);
+}
+
+/* Enhanced Navigation Styles */
+.nav-item {
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-card);
+}
+
+.nav-item.active {
+  color: white;
+  background-color: var(--color-brand-primary);
+  font-weight: 500;
+}
+
+/* Enhanced Tab Styles */
+.tab-item {
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tab-item:hover {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-surface-border);
+}
+
+.tab-item.active {
+  color: var(--color-brand-primary);
+  border-bottom-color: var(--color-brand-primary);
+  font-weight: 500;
+}
+
+/* Enhanced Modal and Card Styles */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.card {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced Form Controls */
+.form-input {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text-primary);
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Enhanced Select Dropdown */
+.form-select {
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text-primary);
+  padding: 0.625rem 2rem 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Comfort Theme Specific Overrides */
+.comfort .form-input,
+.comfort .form-select {
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.comfort .btn-primary,
+.comfort .btn-secondary {
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
+}
 
 /* Comfort: slightly roomier controls and softer borders */
 .comfort select,
@@ -89,7 +291,7 @@ a, button { outline-offset: 2px; }
 .comfort input:focus,
 .comfort textarea:focus {
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(56, 116, 203, 0.25) inset !important; /* soft inner focus */
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25) inset !important; /* soft inner focus */
 }
 
 /* Reduced motion: disable popover scale animation */

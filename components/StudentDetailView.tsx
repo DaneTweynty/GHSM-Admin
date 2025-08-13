@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import ThemedSelect from './ThemedSelect';
 import { control } from './ui';
 import type { Student, Lesson, Billing, Instructor } from '../types';
@@ -172,12 +173,18 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
     if (contactPhone && !isValidPhone(contactPhone)) nextErrors.contactPhone = 'Enter a valid 10-digit phone (or 1+10).';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    handleUpdateStudentContact(student.id, {
-      email: contactEmail.trim() || undefined,
-      contactNumber: normalizePhone(contactPhone) || undefined,
-      facebook: contactFacebook.trim() || undefined,
-    });
-    setIsEditingContact(false);
+    
+    try {
+      handleUpdateStudentContact(student.id, {
+        email: contactEmail.trim() || undefined,
+        contactNumber: normalizePhone(contactPhone) || undefined,
+        facebook: contactFacebook.trim() || undefined,
+      });
+      setIsEditingContact(false);
+      toast.success(`Contact information for ${student.name} has been updated successfully!`);
+    } catch (error) {
+      toast.error('Failed to update contact information. Please try again.');
+    }
   };
 
   const handleSaveGuardian = () => {
@@ -185,13 +192,19 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
     if (gPhone && !isValidPhone(gPhone)) nextErrors.gPhone = 'Enter a valid 10-digit phone (or 1+10).';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    handleUpdateStudentContact(student.id, {
-      guardianFullName: gName.trim() || undefined,
-      guardianPhone: normalizePhone(gPhone) || undefined,
-      guardianEmail: gEmail.trim() || undefined,
-      guardianFacebook: gFacebook.trim() || undefined,
-    });
-    setIsEditingGuardian(false);
+    
+    try {
+      handleUpdateStudentContact(student.id, {
+        guardianFullName: gName.trim() || undefined,
+        guardianPhone: normalizePhone(gPhone) || undefined,
+        guardianEmail: gEmail.trim() || undefined,
+        guardianFacebook: gFacebook.trim() || undefined,
+      });
+      setIsEditingGuardian(false);
+      toast.success(`Guardian information for ${student.name} has been updated successfully!`);
+    } catch (error) {
+      toast.error('Failed to update guardian information. Please try again.');
+    }
   };
 
   const lastAttendanceLabel = student.lastAttendanceMarkedAt ? new Date(student.lastAttendanceMarkedAt).toLocaleString() : 'N/A';
@@ -506,7 +519,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           </div>
         </div>
         {lessons.length > 0 ? (
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
             {filteredLessons.length === 0 ? (
               <p className="text-sm text-text-secondary dark:text-slate-400">No lessons for this filter.</p>
             ) : (
@@ -563,7 +576,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
       <Card className="p-4 flex flex-col h-full">
         <h3 className="text-base font-semibold text-text-primary dark:text-slate-100 mb-3">Payment History</h3>
         {billings.length > 0 ? (
-          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto scrollbar-hidden">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-surface-border dark:border-slate-700">

@@ -56,6 +56,12 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
 
   const [formData, setFormData] = useState<LessonFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Field-level validation state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldTouched, setFieldTouched] = useState<Record<string, boolean>>({});
+  const [showValidation, setShowValidation] = useState(false);
+  
   const [isStartPickerOpen, setIsStartPickerOpen] = useState(false);
   const [isEndPickerOpen, setIsEndPickerOpen] = useState(false);
   const startPickerBtnRef = useRef<HTMLButtonElement>(null);
@@ -141,8 +147,93 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
     localStorage.setItem('ghsm:lastDuration:global', String(minutes));
   };
 
+  // Field validation functions
+  const validateField = (fieldName: string, value: string | number): string => {
+    switch (fieldName) {
+      case 'studentId':
+        if (!value || value === '') return 'Please select a student.';
+        return '';
+      case 'instructorId':
+        if (!value || value === '') return 'Please select an instructor.';
+        return '';
+      case 'roomId':
+        if (!value && value !== 0) return 'Please select a room.';
+        if (typeof value === 'number' && (value < 1 || value > ROOM_COUNT)) {
+          return `Room must be between 1 and ${ROOM_COUNT}.`;
+        }
+        return '';
+      case 'time':
+        if (!value || value === '') return 'Please select a start time.';
+        return '';
+      case 'endTime':
+        if (!value || value === '') return 'Please select an end time.';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Handle field blur to mark as touched and validate
+  const handleFieldBlur = (fieldName: string, value: string | number) => {
+    setFieldTouched(prev => ({ ...prev, [fieldName]: true }));
+    const error = validateField(fieldName, value);
+    setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
+  };
+
+  // Handle field change to clear error and validate if touched
+  const handleFieldChange = (fieldName: string, value: string | number) => {
+    // Clear error immediately when user starts typing/selecting
+    if (fieldErrors[fieldName]) {
+      setFieldErrors(prev => ({ ...prev, [fieldName]: '' }));
+    }
+    
+    // Validate if field was touched
+    if (fieldTouched[fieldName]) {
+      const error = validateField(fieldName, value);
+      setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
+    }
+  };
+
+  // Get error for field if it should be shown
+  const shouldShowFieldError = (fieldName: string): boolean => {
+    return (fieldTouched[fieldName] || showValidation) && !!fieldErrors[fieldName];
+  };
+
+  // Validate all fields
+  const validateAllFields = (): Record<string, string> => {
+    if (!formData) return {};
+    
+    const errors: Record<string, string> = {};
+    
+    const studentError = validateField('studentId', formData.studentId);
+    if (studentError) errors.studentId = studentError;
+    
+    const instructorError = validateField('instructorId', formData.instructorId);
+    if (instructorError) errors.instructorId = instructorError;
+    
+    const roomError = validateField('roomId', formData.roomId);
+    if (roomError) errors.roomId = roomError;
+    
+    const timeError = validateField('time', formData.time || '');
+    if (timeError) errors.time = timeError;
+    
+    const endTimeError = validateField('endTime', formData.endTime || '');
+    if (endTimeError) errors.endTime = endTimeError;
+    
+    return errors;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Handle field change validation
+    if (name === 'roomId') {
+      const roomValue = parseInt(value);
+      handleFieldChange('roomId', roomValue);
+    } else {
+      handleFieldChange(name, value);
+    }
+    
     setFormData(prev => {
       if (!prev) return prev;
       if (name === 'roomId') return { ...prev, roomId: parseInt(value) };
@@ -218,16 +309,58 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
     e.preventDefault();
     if (!formData) return;
     
+    setShowValidation(true);
+    
+    // Validate all fields first
+    const fieldValidationErrors = validateAllFields();
+    setFieldErrors(fieldValidationErrors);
+    
+    // Mark all fields as touched when submitting
+    const allFieldsTouched: Record<string, boolean> = {};
+    Object.keys(fieldValidationErrors).forEach(field => {
+      allFieldsTouched[field] = true;
+    });
+    setFieldTouched(prev => ({ ...prev, ...allFieldsTouched }));
+    
+    const errorMessages = Object.values(fieldValidationErrors).filter(error => error.length > 0);
+    
+    // Display field validation errors with toast feedback
+    if (errorMessages.length > 0) {
+      const errorFieldNames = Object.keys(fieldValidationErrors).filter(key => fieldValidationErrors[key]);
+      const fieldDisplayNames = errorFieldNames.map(field => {
+        const displayNames: Record<string, string> = {
+          'studentId': 'Student',
+          'instructorId': 'Instructor',
+          'roomId': 'Room',
+          'time': 'Start Time',
+          'endTime': 'End Time'
+        };
+        return displayNames[field] || field;
+      });
+      
+      if (fieldDisplayNames.length === 1) {
+        toast.error(`Please select a ${fieldDisplayNames[0].toLowerCase()} and try again.`);
+      } else if (fieldDisplayNames.length === 2) {
+        toast.error(`Please select the ${fieldDisplayNames[0]} and ${fieldDisplayNames[1]} fields and try again.`);
+      } else {
+        toast.error(`Please complete the following fields: ${fieldDisplayNames.slice(0, -1).join(', ')}, and ${fieldDisplayNames[fieldDisplayNames.length - 1]}.`);
+      }
+      
+      setError(`Please complete all required fields before saving.`);
+      return;
+    }
+    
     if (isAddMode) {
       const student = students.find(s => s.id === formData.studentId);
       if (!student) {
         setError("Please select a student.");
+        toast.error("Please select a student.");
         return;
       }
       if (student.status === 'inactive') {
-  const warningMessage = `Student "${student.name}" is not enrolled. Please activate the student to schedule new lessons.`;
-  setError(warningMessage);
-  toast.error(warningMessage);
+        const warningMessage = `Student "${student.name}" is not enrolled. Please activate the student to schedule new lessons.`;
+        setError(warningMessage);
+        toast.error(warningMessage);
         return;
       }
     }
@@ -349,7 +482,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
         {/* Arrow */}
         <div style={{ position: 'absolute', top: -6, left: arrowX - 6 }} className="w-3 h-3 rotate-45 bg-surface-card dark:bg-slate-800 border-l border-t border-white/10"></div>
         <div className="p-3 grid grid-cols-[1fr_1fr_auto] gap-2 items-start">
-          <div className="max-h-40 overflow-y-auto thin-scroll border border-surface-border dark:border-slate-600 rounded">
+          <div className="max-h-40 overflow-y-auto scrollbar-hidden border border-surface-border dark:border-slate-600 rounded">
             {hours.map(h => (
               <button
                 key={h}
@@ -358,7 +491,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
               >{String(h).padStart(2,'0')}</button>
             ))}
           </div>
-          <div className="max-h-40 overflow-y-auto thin-scroll border border-surface-border dark:border-slate-600 rounded">
+          <div className="max-h-40 overflow-y-auto scrollbar-hidden border border-surface-border dark:border-slate-600 rounded">
             {minutes.map(mm => (
               <button
                 key={mm}
@@ -426,7 +559,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
           </div>
           
           {/* Enhanced Scrollable Content */}
-          <div className="flex-1 overflow-y-auto thin-scroll px-6 py-4">
+          <div className="flex-1 overflow-y-auto scrollbar-hidden px-6 py-4">
             
             {error && <div className="bg-status-red/10 dark:bg-status-red/20 border border-status-red/20 text-status-red px-4 py-3 rounded-lg mb-4 font-medium flex items-center space-x-2" role="alert">
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,7 +782,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                     />
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
                       formData.repeatWeekly
-                        ? 'bg-blue-500 border-blue-500 text-white'
+                        ? 'bg-brand-primary border-brand-primary text-white'
                         : 'border-gray-300 dark:border-slate-600 group-hover:border-blue-400'
                     }`}>
                       {formData.repeatWeekly && (
@@ -692,7 +825,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                   <button
                     type="button"
                     onClick={handleTrash}
-                    className="px-4 py-2 rounded-lg font-semibold text-white bg-status-red hover:bg-red-600 transition-colors flex items-center space-x-2 shadow-sm"
+                    className="px-4 py-2 rounded-lg font-semibold text-white bg-status-red hover:bg-status-red/80 transition-colors flex items-center space-x-2 shadow-sm"
                     aria-label="Move this lesson to the trash"
                   >
                     {ICONS.trash}
@@ -710,7 +843,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
                 </button>
                 <button 
                   type="submit" 
-                  className="px-4 py-2 rounded-lg font-semibold text-white bg-brand-primary hover:bg-blue-600 transition-colors shadow-sm"
+                  className="px-4 py-2 rounded-lg font-semibold text-white bg-brand-primary hover:bg-brand-secondary transition-colors shadow-sm"
                 >
                   {isAddMode ? 'Add Lesson' : 'Save Changes'}
                 </button>

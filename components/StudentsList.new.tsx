@@ -151,7 +151,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-hidden">
           <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700 md:table">
             <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
               <tr>

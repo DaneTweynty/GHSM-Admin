@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import type { Instructor, Student } from '../types';
 import { Card } from './Card';
 import { control } from './ui';
@@ -32,12 +33,14 @@ interface EnrollmentPageProps {
     };
     guardianFullName?: string;
     guardianRelationship?: string;
+    guardianOccupation?: string;
     guardianPhone?: string;
     guardianEmail?: string;
     guardianFacebook?: string;
     secondaryGuardian?: {
       fullName?: string;
       relationship?: string;
+      occupation?: string;
       phone?: string;
       email?: string;
       facebook?: string;
@@ -81,7 +84,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           icon: '⚠️',
           iconBg: 'bg-red-100 dark:bg-red-900/20',
           iconColor: 'text-red-600 dark:text-red-400',
-          confirmBtn: 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+          confirmBtn: 'bg-status-red hover:bg-status-red/80 focus:ring-status-red/50'
         };
       case 'warning':
         return {
@@ -95,7 +98,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           icon: 'ℹ️',
           iconBg: 'bg-blue-100 dark:bg-blue-900/20',
           iconColor: 'text-blue-600 dark:text-blue-400',
-          confirmBtn: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+          confirmBtn: 'bg-brand-primary hover:bg-brand-secondary focus:ring-brand-primary/50'
         };
     }
   };
@@ -103,7 +106,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const styles = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto scrollbar-hidden">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
       
@@ -209,6 +212,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   const [primaryGuardian, setPrimaryGuardian] = useState({
     fullName: '',
     relationship: '',
+    occupation: '',
     phone: '',
     email: '',
     facebook: '',
@@ -217,6 +221,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   const [secondaryGuardian, setSecondaryGuardian] = useState<{
     fullName?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
     facebook?: string;
@@ -245,6 +250,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   const handlePrimaryGuardianChange = (guardian: {
     fullName?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
     facebook?: string;
@@ -252,6 +258,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
     setPrimaryGuardian({
       fullName: guardian.fullName || '',
       relationship: guardian.relationship || '',
+      occupation: guardian.occupation || '',
       phone: guardian.phone || '',
       email: guardian.email || '',
       facebook: guardian.facebook || '',
@@ -261,6 +268,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
   const handleSecondaryGuardianChange = (guardian: {
     fullName?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
     facebook?: string;
@@ -414,22 +422,20 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
         return '';
         
       case 'addressLine1': {
-        const addressValue = String(value || '');
-        if (!addressValue || !addressValue.trim()) return 'Street address is required';
-        if (addressValue.trim().length < 5) return 'Please provide a complete street address';
+        // Address line 1 is now optional
         return '';
       }
         
       case 'province':
-        if (!value) return 'Province selection is required';
+        // Province is now optional
         return '';
         
       case 'city':
-        if (!value) return 'City/Municipality selection is required';
+        // City is now optional
         return '';
         
       case 'barangay':
-        if (!value) return 'Barangay selection is required';
+        // Barangay is now optional
         return '';
         
       case 'primaryGuardianName':
@@ -719,6 +725,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
       handlePrimaryGuardianChange({
         fullName: selectedStudent.guardianFullName || '',
         relationship: 'Parent',
+        occupation: '', // No occupation in existing data structure
         phone: selectedStudent.guardianPhone || '',
         email: selectedStudent.guardianEmail || '',
         facebook: selectedStudent.guardianFacebook || '',
@@ -729,6 +736,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
         handleSecondaryGuardianChange({
           fullName: selectedStudent.secondaryGuardian.fullName || '',
           relationship: selectedStudent.secondaryGuardian.relationship || '',
+          occupation: selectedStudent.secondaryGuardian.occupation || '',
           phone: selectedStudent.secondaryGuardian.phone || '',
           email: selectedStudent.secondaryGuardian.email || '',
           facebook: selectedStudent.secondaryGuardian.facebook || '',
@@ -797,6 +805,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
     handlePrimaryGuardianChange({
       fullName: '',
       relationship: '',
+      occupation: '',
       phone: '',
       email: '',
       facebook: '',
@@ -871,6 +880,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
         handlePrimaryGuardianChange({
           fullName: '',
           relationship: '',
+          occupation: '',
           phone: '',
           email: '',
           facebook: '',
@@ -908,8 +918,38 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
       
       const errorMessages = Object.values(fieldValidationErrors).filter(error => error.length > 0);
       
-      // Display errors if any
+      // Display errors if any with enhanced toast feedback
       if (errorMessages.length > 0) {
+        const errorFieldNames = Object.keys(fieldValidationErrors).filter(key => fieldValidationErrors[key]);
+        const fieldDisplayNames = errorFieldNames.map(field => {
+          const displayNames: Record<string, string> = {
+            'name': 'Student Name',
+            'gender': 'Gender',
+            'birthdate': 'Birth Date',
+            'age': 'Age',
+            'email': 'Email Address',
+            'contactNumber': 'Phone Number',
+            'instrument': 'Instrument',
+            'instructorId': 'Instructor',
+            'province': 'Province',
+            'city': 'City',
+            'barangay': 'Barangay',
+            'addressLine1': 'Street Address',
+            'primaryGuardianName': 'Guardian Name',
+            'primaryGuardianRelationship': 'Guardian Relationship',
+            'selectedExistingStudentId': 'Student Selection'
+          };
+          return displayNames[field] || field;
+        });
+        
+        if (fieldDisplayNames.length === 1) {
+          toast.error(`Please check the ${fieldDisplayNames[0]} field and try again.`);
+        } else if (fieldDisplayNames.length === 2) {
+          toast.error(`Please check the ${fieldDisplayNames[0]} and ${fieldDisplayNames[1]} fields and try again.`);
+        } else {
+          toast.error(`Please check the following fields: ${fieldDisplayNames.slice(0, -1).join(', ')}, and ${fieldDisplayNames[fieldDisplayNames.length - 1]}.`);
+        }
+        
         setError(`Please fix the following ${errorMessages.length} issue${errorMessages.length > 1 ? 's' : ''} before submitting:`);
         setValidationErrors(errorMessages);
         return;
@@ -927,46 +967,58 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
       }
 
       // Proceed with enrollment submission
-      onRequestEnrollment({ 
-          name, 
-          nickname: nickname || undefined,
-          birthdate: birthdate || undefined,
-          instrument, 
-          instructorId,
-          age: finalAge,
-          gender: gender as 'Male' | 'Female',
-          email: email || undefined,
-          contactNumber: contactNumber ? normalizePhone(contactNumber) : undefined,
-          facebook: facebook || undefined,
-          address: {
-            country: address.country,
-            province: address.province || undefined,
-            city: address.city || undefined,
-            barangay: address.barangay || undefined,
-            addressLine1: address.addressLine1,
-            addressLine2: address.addressLine2 || undefined,
-          },
-          guardianFullName: primaryGuardian.fullName || undefined,
-          guardianRelationship: primaryGuardian.relationship || undefined,
-          guardianPhone: primaryGuardian.phone ? normalizePhone(primaryGuardian.phone) : undefined,
-          guardianEmail: primaryGuardian.email || undefined,
-          guardianFacebook: primaryGuardian.facebook || undefined,
-          secondaryGuardian: secondaryGuardian && (secondaryGuardian.fullName || secondaryGuardian.phone || secondaryGuardian.email) ? {
-            fullName: secondaryGuardian.fullName || undefined,
-            relationship: secondaryGuardian.relationship || undefined,
-            phone: secondaryGuardian.phone ? normalizePhone(secondaryGuardian.phone) : undefined,
-            email: secondaryGuardian.email || undefined,
-            facebook: secondaryGuardian.facebook || undefined,
-          } : undefined,
-          // Link to original student if this is multi-instrument enrollment
-          parentStudentId: isExistingStudent ? selectedExistingStudentId : undefined,
-      });
+      try {
+        onRequestEnrollment({ 
+            name, 
+            nickname: nickname || undefined,
+            birthdate: birthdate || undefined,
+            instrument, 
+            instructorId,
+            age: finalAge,
+            gender: gender as 'Male' | 'Female',
+            email: email || undefined,
+            contactNumber: contactNumber ? normalizePhone(contactNumber) : undefined,
+            facebook: facebook || undefined,
+            address: {
+              country: address.country,
+              province: address.province || undefined,
+              city: address.city || undefined,
+              barangay: address.barangay || undefined,
+              addressLine1: address.addressLine1,
+              addressLine2: address.addressLine2 || undefined,
+            },
+            guardianFullName: primaryGuardian.fullName || undefined,
+            guardianRelationship: primaryGuardian.relationship || undefined,
+            guardianOccupation: primaryGuardian.occupation || undefined,
+            guardianPhone: primaryGuardian.phone ? normalizePhone(primaryGuardian.phone) : undefined,
+            guardianEmail: primaryGuardian.email || undefined,
+            guardianFacebook: primaryGuardian.facebook || undefined,
+            secondaryGuardian: secondaryGuardian && (secondaryGuardian.fullName || secondaryGuardian.phone || secondaryGuardian.email) ? {
+              fullName: secondaryGuardian.fullName || undefined,
+              relationship: secondaryGuardian.relationship || undefined,
+              occupation: secondaryGuardian.occupation || undefined,
+              phone: secondaryGuardian.phone ? normalizePhone(secondaryGuardian.phone) : undefined,
+              email: secondaryGuardian.email || undefined,
+              facebook: secondaryGuardian.facebook || undefined,
+            } : undefined,
+            // Link to original student if this is multi-instrument enrollment
+            parentStudentId: isExistingStudent ? selectedExistingStudentId : undefined,
+        });
+        
+        // Success feedback will be handled by the parent component via successMessage prop
+        toast.success(`Student ${name} has been successfully enrolled!`);
+        
+      } catch (error) {
+        console.error('Enrollment submission error:', error);
+        toast.error('Failed to enroll student. Please try again.');
+      }
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      toast.error('An error occurred during validation. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  const inputClasses = control;
+  };  const inputClasses = control;
   const labelClasses = "block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1";
 
   return (
@@ -1008,7 +1060,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
                     />
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                       !isExistingStudent
-                        ? 'bg-blue-500 border-blue-500 text-white'
+                        ? 'bg-brand-primary border-brand-primary text-white'
                         : 'border-gray-300 dark:border-slate-600 group-hover:border-blue-400'
                     }`}>
                       {!isExistingStudent && (
@@ -1030,7 +1082,7 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
                     />
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                       isExistingStudent
-                        ? 'bg-blue-500 border-blue-500 text-white'
+                        ? 'bg-brand-primary border-brand-primary text-white'
                         : 'border-gray-300 dark:border-slate-600 group-hover:border-blue-400'
                     }`}>
                       {isExistingStudent && (
@@ -1254,10 +1306,10 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
             {/* Address Information */}
             <fieldset className="space-y-4 p-4 border border-surface-border dark:border-slate-700 rounded-md">
               <legend className="text-lg font-semibold text-text-primary dark:text-slate-200 px-2">
-                Address Information
+                Address Information (Optional)
               </legend>
               <p className="text-sm text-text-secondary dark:text-slate-400 -mt-2">
-                Complete address information for records and emergency contact.
+                Address information is optional. You can provide as much or as little detail as you're comfortable sharing.
               </p>
               <AddressInput
                 address={address}

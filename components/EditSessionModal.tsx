@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import type { Student } from '../types';
 import { control } from './ui';
 import { ADMIN_PASSWORD } from '../constants';
@@ -35,14 +36,22 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ isOpen, onCl
     if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       setError(null);
+      toast.success('Access granted successfully!');
     } else {
       setError('Incorrect password. Please try again.');
+      toast.error('Incorrect password. Please try again.');
     }
   };
 
   const handleSave = () => {
-    // Pass the new unpaid count, App.tsx will handle the total calculation
-    onSave(student.id, unpaidSessionCount);
+    try {
+      // Pass the new unpaid count, App.tsx will handle the total calculation
+      onSave(student.id, unpaidSessionCount);
+      toast.success(`Session count for ${student.name} has been updated successfully!`);
+      onClose();
+    } catch (error) {
+      toast.error('Failed to update session count. Please try again.');
+    }
   };
 
   const handleModalClose = () => {
@@ -61,7 +70,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ isOpen, onCl
         </div>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto thin-scroll">
+        <div className="flex-1 overflow-y-auto scrollbar-hidden">
           <div className="p-6">
             {error && <div className="bg-status-red-light dark:bg-status-red/20 border-status-red/20 text-status-red px-4 py-3 rounded-md mb-4 font-medium" role="alert">{error}</div>}
 

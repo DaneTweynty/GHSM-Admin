@@ -110,27 +110,33 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
   return (
     <div className="max-w-7xl mx-auto"> {/* Optimal container size */}
       <Card>
-        <div className="p-4 sm:p-6 flex flex-col gap-4">
-          {/* Header section with title and add button */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="p-4 sm:p-6">
+          {/* Header with title and action buttons */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Instructor Roster</h2>
+              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Teacher List</h2>
               <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
-                Showing {startIndex + 1}-{Math.min(endIndex, sortedInstructors.length)} of {sortedInstructors.length} instructor{sortedInstructors.length !== 1 ? 's' : ''}
-                {searchQuery && filteredInstructors.length !== instructors.length && (
-                  <span className="text-brand-primary"> (filtered from {instructors.length} total)</span>
+                Manage instructors and their specialties
+                {filteredInstructors.length > 0 && (
+                  <span>
+                    {' '}({startIndex + 1}-{Math.min(endIndex, filteredInstructors.length)} of {filteredInstructors.length} instructor{filteredInstructors.length !== 1 ? 's' : ''})
+                  </span>
                 )}
               </p>
             </div>
-            <button
-              onClick={onAddInstructor}
-              className="flex items-center space-x-2 px-4 py-2 rounded-md font-semibold text-sm text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              <span>Add Instructor</span>
-            </button>
+            
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={onAddInstructor}
+                className="flex items-center space-x-2 px-4 py-2 rounded-md font-semibold text-sm text-text-on-color bg-brand-primary hover:opacity-90 transition-opacity"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                <span>Add Teacher</span>
+              </button>
+            </div>
           </div>
 
           {/* Search section */}
@@ -147,25 +153,8 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
             filteredResults={filteredInstructors.length}
             itemName="instructors"
           />
-          
-          {/* Pagination Controls */}
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={pageSize}
-            totalItems={sortedInstructors.length}
-            itemName="instructors"
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={(newSize) => {
-              setPageSize(newSize);
-              setCurrentPage(1);
-              setExpandedInstructorId(null);
-            }}
-            showPageSizeSelector={true}
-            pageSizeOptions={[5, 10, 15, 20, 25]}
-          />
         </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-hidden">
         <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
           <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
             <tr>
@@ -312,6 +301,27 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
           </tbody>
         </table>
       </div>
+      
+      {/* Pagination Controls at the bottom */}
+      {filteredInstructors.length > 0 && (
+        <div className="px-4 py-4 sm:px-6 border-t border-surface-border dark:border-slate-700">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={pageSize}
+            totalItems={filteredInstructors.length}
+            itemName="instructors"
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+              setExpandedInstructorId(null);
+            }}
+            showPageSizeSelector={true}
+            pageSizeOptions={[5, 10, 25, 50, 100]}
+          />
+        </div>
+      )}
       
       {/* Profile Modal */}
       {profilePopoverInstructorId && (

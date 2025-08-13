@@ -52,10 +52,11 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [stagedUpload, setStagedUpload] = useState<StagedBulkUpload | null>(null);
-  const [step, setStep] = useState<'upload' | 'staging' | 'completion' | 'success'>('upload');
+  const [step, setStep] = useState<'upload' | 'staging' | 'completion' | 'review' | 'success'>('upload');
   const [currentStudentIndex, setCurrentStudentIndex] = useState(0);
   const [showBatchProgress, setShowBatchProgress] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
   
   // Drag and drop state
   const [isDragOver, setIsDragOver] = useState(false);
@@ -93,6 +94,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
     primaryGuardian: {
       fullName: '',
       relationship: '',
+      occupation: '',
       phone: '',
       email: '',
       facebook: '',
@@ -101,6 +103,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
     secondaryGuardian: undefined as {
       fullName?: string;
       relationship?: string;
+      occupation?: string;
       phone?: string;
       email?: string;
       facebook?: string;
@@ -157,6 +160,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
           primaryGuardian: {
             fullName: '',
             relationship: '',
+            occupation: '',
             phone: '',
             email: '',
             facebook: '',
@@ -168,6 +172,40 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
       }
     }
   }, [currentStudentIndex, stagedUpload, step]);
+
+  // Complete form reset helper for better address clearing
+  const resetFormCompletely = () => {
+    setEnrollmentForm({
+      name: '',
+      nickname: '',
+      birthdate: '',
+      age: '',
+      gender: '',
+      email: '',
+      contactNumber: '',
+      facebook: '',
+      instrument: '',
+      instructorId: '',
+      address: {
+        country: 'Philippines',
+        province: '',
+        city: '',
+        barangay: '',
+        addressLine1: '',
+        addressLine2: '',
+      },
+      primaryGuardian: {
+        fullName: '',
+        relationship: '',
+        occupation: '',
+        phone: '',
+        email: '',
+        facebook: '',
+      },
+      secondaryGuardian: undefined,
+    });
+    setCalculatedAge(0);
+  };
 
   // Form validation helpers
   const validateForm = () => {
@@ -206,16 +244,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
       errorMessages.push('Guardian information is required for students under 18');
     }
     
-    // Address validation (at least basic fields)
-    if (!enrollmentForm.address.province?.trim()) {
-      errors.province = 'Province is required';
-      errorMessages.push('Province is required');
-    }
-    
-    if (!enrollmentForm.address.city?.trim()) {
-      errors.city = 'City is required';
-      errorMessages.push('City is required');
-    }
+    // Address validation removed - now optional for all students
     
     setFieldErrors(errors);
     
@@ -269,6 +298,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const handlePrimaryGuardianChange = (guardian: {
     fullName?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
     facebook?: string;
@@ -278,6 +308,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
       primaryGuardian: {
         fullName: guardian.fullName || '',
         relationship: guardian.relationship || '',
+        occupation: guardian.occupation || '',
         phone: guardian.phone || '',
         email: guardian.email || '',
         facebook: guardian.facebook || '',
@@ -288,6 +319,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const handleSecondaryGuardianChange = (guardian: {
     fullName?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
     facebook?: string;
@@ -618,20 +650,14 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
       if (nextIndex < stagedUpload.totalCount) {
         setCurrentStudentIndex(nextIndex);
         
-        // Force address clearing by setting a timeout to ensure state has updated
+        // Scroll to top of the modal for next student
         setTimeout(() => {
-          setEnrollmentForm(prev => ({
-            ...prev,
-            address: {
-              country: 'Philippines',
-              province: '',
-              city: '',
-              barangay: '',
-              addressLine1: '',
-              addressLine2: '',
-            }
-          }));
+          if (scrollableContentRef.current) {
+            scrollableContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }, 100);
+        
+        // Form will be automatically populated with next student's data via useEffect
       } else {
         // All students processed, proceed to batch commit
         await handleBatchCommit(updatedStudents);
@@ -663,6 +689,13 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
     if (nextIndex < stagedUpload.totalCount) {
       setCurrentStudentIndex(nextIndex);
       
+      // Scroll to top of the modal for next student
+      setTimeout(() => {
+        if (scrollableContentRef.current) {
+          scrollableContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+      
       // Force address clearing by setting a timeout to ensure state has updated
       setTimeout(() => {
         setEnrollmentForm(prev => ({
@@ -676,7 +709,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
             addressLine2: '',
           }
         }));
-      }, 100);
+      }, 150);
     } else {
       // All students processed, check if any were completed
       const completedStudents = updatedStudents.filter(s => s.status === 'completed');
@@ -719,7 +752,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
 
       console.log('Students to enroll:', studentsToEnroll);
       await onBatchEnrollment(studentsToEnroll);
-      setStep('success');
+      setStep('review');
     } catch (error) {
       console.error('Batch enrollment error:', error);
       setErrors(['Failed to enroll students. Please try again.']);
@@ -773,6 +806,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
               <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
                 {step === 'staging' && `${stagedUpload.totalCount} students ready for enrollment`}
                 {step === 'completion' && `Completing student ${currentStudentIndex + 1} of ${stagedUpload.totalCount}`}
+                {step === 'review' && `Review ${stagedUpload.completedCount} students before final registration`}
                 {step === 'success' && `Successfully enrolled ${stagedUpload.completedCount} students`}
               </p>
             )}
@@ -790,7 +824,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div ref={scrollableContentRef} className="p-6 overflow-y-auto scrollbar-hidden max-h-[calc(90vh-140px)]">
           {step === 'upload' && (
             <div className="space-y-6">
               {/* Instructions */}
@@ -875,7 +909,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
               {errors.length > 0 && (
                 <div className="bg-status-red/10 border border-status-red/20 rounded-lg p-4">
                   <h4 className="font-medium text-status-red mb-2">Validation Errors</h4>
-                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto">
+                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto scrollbar-hidden">
                     {errors.map((error, index) => (
                       <div key={index} className="flex items-start space-x-1">
                         <span className="text-status-red mt-0.5">•</span>
@@ -922,7 +956,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
 
               {/* Preview Table */}
               <div className="border border-surface-border dark:border-slate-700 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-h-96">
+                <div className="overflow-x-auto scrollbar-hidden max-h-96">
                   <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
                     <thead className="bg-surface-table-header dark:bg-slate-700">
                       <tr>
@@ -1020,11 +1054,11 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                     </p>
                     <ul className="space-y-1 text-sm">
                       <li className="flex items-center space-x-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-brand-primary rounded-full"></span>
                         <span>Instructor Assignment</span>
                       </li>
                       <li className="flex items-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-status-green rounded-full"></span>
                         <span>Complete Address (Street, Province, City, Barangay)</span>
                       </li>
                       {isMinor && (
@@ -1268,6 +1302,80 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {step === 'review' && stagedUpload && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-text-primary dark:text-slate-100">
+                  Review & Confirm Enrollment
+                </h3>
+                <p className="text-text-secondary dark:text-slate-300">
+                  Please review the students below before final registration to the system.
+                </p>
+              </div>
+
+              {/* Student Summary */}
+              <div className="bg-surface-subtle dark:bg-slate-800 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-status-green">{stagedUpload.completedCount}</div>
+                    <div className="text-text-secondary dark:text-slate-400">Students Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-text-secondary dark:text-slate-400">
+                      {stagedUpload.totalCount - stagedUpload.completedCount}
+                    </div>
+                    <div className="text-text-secondary dark:text-slate-400">Students Skipped</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Students List Preview */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-text-primary dark:text-slate-100">Students to be Registered:</h4>
+                <div className="max-h-60 overflow-y-auto scrollbar-hidden space-y-2 border border-surface-border dark:border-slate-700 rounded-lg p-3">
+                  {stagedUpload.students
+                    .filter(s => s.status === 'completed')
+                    .map((student, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-surface-card dark:bg-slate-700 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-text-primary dark:text-slate-100">
+                          {student.csvData.fullName}
+                        </div>
+                        <div className="text-sm text-text-secondary dark:text-slate-400">
+                          {student.csvData.instrument} • {student.enrollmentData?.guardianFullName || 'No guardian info'}
+                        </div>
+                      </div>
+                      <div className="text-sm text-status-green bg-status-green/10 px-2 py-1 rounded">
+                        Ready
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <button
+                  onClick={() => setStep('completion')}
+                  className="flex-1 px-4 py-2 border border-surface-border dark:border-slate-600 text-text-primary dark:text-slate-200 rounded-md hover:bg-surface-subtle dark:hover:bg-slate-800 transition-colors"
+                >
+                  ← Back to Edit Students
+                </button>
+                <button
+                  onClick={() => setStep('success')}
+                  className="flex-1 px-4 py-2 bg-status-green text-white rounded-md hover:opacity-90 transition-opacity font-medium"
+                >
+                  ✓ Confirm & Register All Students
+                </button>
               </div>
             </div>
           )}

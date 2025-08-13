@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useChat } from '../hooks/useChat';
 import type { ChatMessage } from '../types';
+import toast from 'react-hot-toast';
 import { 
   Send, 
   Paperclip, 
@@ -11,6 +12,8 @@ import {
   VideoOff, 
   Image, 
   File, 
+  FileText,
+  FileSpreadsheet,
   Smile, 
   Search,
   Pin,
@@ -38,7 +41,14 @@ import {
   AlertCircle,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  Phone,
+  Info,
+  Users,
+  MessageSquare,
+  PhoneCall,
+  PhoneOff,
+  Bell
 } from 'lucide-react';
 
 interface EnhancedChatProps {
@@ -57,12 +67,162 @@ const REACTIONS = [
 ];
 
 const MESSAGE_TEMPLATES = [
-  'Thanks for the information!',
-  'Could you please clarify?',
-  'I\'ll get back to you shortly.',
-  'Meeting scheduled for tomorrow.',
-  'Please find the attached file.',
-  'Let me know if you need help.'
+  {
+    name: 'Thank You',
+    content: 'Thanks for the information!',
+    category: 'courtesy',
+    shortcut: '/thanks'
+  },
+  {
+    name: 'Clarification Request',
+    content: 'Could you please clarify this for me?',
+    category: 'inquiry',
+    shortcut: '/clarify'
+  },
+  {
+    name: 'Follow Up',
+    content: 'I\'ll get back to you shortly with more details.',
+    category: 'response',
+    shortcut: '/followup'
+  },
+  {
+    name: 'Meeting Scheduled',
+    content: 'Meeting scheduled for tomorrow at {time}. Looking forward to it!',
+    category: 'scheduling',
+    shortcut: '/meeting'
+  },
+  {
+    name: 'File Attachment',
+    content: 'Please find the attached file for your review.',
+    category: 'files',
+    shortcut: '/attach'
+  },
+  {
+    name: 'Assistance Offer',
+    content: 'Let me know if you need any help with this.',
+    category: 'support',
+    shortcut: '/help'
+  },
+  {
+    name: 'Payment Reminder',
+    content: 'Friendly reminder: Your payment is due on {date}.',
+    category: 'billing',
+    shortcut: '/payment'
+  },
+  {
+    name: 'Class Reminder',
+    content: 'Your lesson is scheduled for {time} today. See you then!',
+    category: 'lessons',
+    shortcut: '/lesson'
+  }
+];
+
+// Mock conversation history for demonstration
+const MOCK_CONVERSATION_HISTORY = [
+  {
+    id: 'msg-001',
+    senderId: 'ai-assistant',
+    senderName: 'AI Assistant',
+    senderType: 'instructor' as const,
+    content: 'Hello! I\'m here to help you with any questions about student management.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    readBy: ['current-user'],
+    type: 'text' as const,
+    status: 'read' as const
+  },
+  {
+    id: 'msg-002',
+    senderId: 'current-user',
+    senderName: 'Admin User',
+    senderType: 'admin' as const,
+    content: 'Can you help me understand the billing system?',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 5).toISOString(),
+    readBy: ['ai-assistant'],
+    type: 'text' as const,
+    status: 'read' as const
+  },
+  {
+    id: 'msg-003',
+    senderId: 'ai-assistant',
+    senderName: 'AI Assistant',
+    senderType: 'instructor' as const,
+    content: 'Of course! The billing system tracks payments for each student. You can view outstanding balances, generate invoices, and record payments.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 6).toISOString(),
+    readBy: ['current-user'],
+    type: 'text' as const,
+    status: 'read' as const
+  },
+  {
+    id: 'msg-004',
+    senderId: 'ai-assistant',
+    senderName: 'AI Assistant',
+    senderType: 'instructor' as const,
+    content: 'billing-demo.pdf',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+    readBy: ['current-user'],
+    type: 'file' as const,
+    status: 'read' as const,
+    fileData: {
+      name: 'billing-demo.pdf',
+      size: 156789,
+      type: 'application/pdf',
+      url: '#'
+    }
+  },
+  {
+    id: 'msg-005',
+    senderId: 'current-user',
+    senderName: 'Admin User',
+    senderType: 'admin' as const,
+    content: 'Perfect! This is very helpful.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    readBy: ['ai-assistant'],
+    type: 'text' as const,
+    status: 'read' as const,
+    reactions: [
+      { userId: 'ai-assistant', userName: 'AI Assistant', emoji: '👍', timestamp: new Date().toISOString() }
+    ]
+  }
+];
+
+// File sharing examples
+const FILE_SHARING_EXAMPLES = [
+  {
+    id: 'file-001',
+    name: 'Student_Progress_Report.pdf',
+    type: 'application/pdf',
+    size: 245760,
+    url: '#',
+    icon: FileText,
+    preview: 'Monthly progress report for all students'
+  },
+  {
+    id: 'file-002',
+    name: 'Lesson_Schedule.xlsx',
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    size: 89123,
+    url: '#',
+    icon: FileSpreadsheet,
+    preview: 'Weekly lesson schedule spreadsheet'
+  },
+  {
+    id: 'file-003',
+    name: 'Student_Photo.jpg',
+    type: 'image/jpeg',
+    size: 567890,
+    url: 'https://via.placeholder.com/300x200/e5e7eb/6b7280?text=Student+Photo',
+    icon: Image,
+    preview: 'Student identification photo'
+  },
+  {
+    id: 'file-004',
+    name: 'Payment_Instructions.docx',
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    size: 34567,
+    url: '#',
+    icon: FileText,
+    preview: 'Step-by-step payment process guide'
+  }
 ];
 
 export const EnhancedChat: React.FC<EnhancedChatProps> = ({
@@ -78,6 +238,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(null);
@@ -86,12 +247,178 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Merge mock conversation history with live chat messages for demonstration
+  const allMessages = React.useMemo(() => {
+    // In a real app, this would come from the backend
+    const combinedMessages = [...MOCK_CONVERSATION_HISTORY, ...chat.messages];
+    
+    // Filter messages based on search query
+    if (searchQuery.trim()) {
+      return combinedMessages.filter(msg => 
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        msg.senderName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return combinedMessages;
+  }, [chat.messages, searchQuery]);
+  
+  // Search results analytics
+  const searchStats = React.useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    
+    const totalResults = allMessages.length;
+    const messageTypes = allMessages.reduce((acc, msg) => {
+      acc[msg.type] = (acc[msg.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return { totalResults, messageTypes };
+  }, [allMessages, searchQuery]);
+  
+  // Call functionality
+  const [isOnCall, setIsOnCall] = useState(false);
+  const [isVideoCall, setIsVideoCall] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  
+  // Settings state
+  const [settings, setSettings] = useState({
+    accessibility: {
+      highContrast: false,
+      largeText: false,
+      keyboardShortcuts: true
+    },
+    notifications: {
+      desktop: true,
+      sound: true,
+      mentions: true,
+      reactions: true
+    },
+    privacy: {
+      readReceipts: true,
+      typingIndicators: true,
+      encryption: false,
+      onlineStatus: true
+    }
+  });
+  
+  // Static data for conversation info
+  const conversationInfo = {
+    id: conversationId,
+    title: 'AI Assistant',
+    participants: [
+      {
+        id: 'ai-assistant',
+        name: 'AI Assistant',
+        role: 'Assistant',
+        status: 'online',
+        avatar: null,
+        email: 'ai@ghsm.edu',
+        phone: '+63 917 123 4567',
+        lastSeen: new Date().toISOString(),
+        isTyping: chat.isTyping
+      },
+      {
+        id: 'current-user',
+        name: 'Admin User',
+        role: 'Administrator',
+        status: 'online',
+        avatar: null,
+        email: 'admin@ghsm.edu',
+        phone: '+63 917 987 6543',
+        lastSeen: new Date().toISOString(),
+        isTyping: false
+      }
+    ],
+    analytics: {
+      totalMessages: chat.messages?.length || 0,
+      messagesSentToday: 12,
+      averageResponseTime: '2 minutes',
+      lastActiveTime: new Date().toISOString(),
+      commonTopics: ['Schedule', 'Billing', 'Student Progress'],
+      messageTypes: {
+        text: 85,
+        voice: 10,
+        files: 5
+      }
+    },
+    settings: {
+      notifications: true,
+      autoResponses: false,
+      messageRetention: '30 days',
+      encryption: false
+    }
+  };
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Call functionality
+  const startCall = useCallback((video: boolean = false) => {
+    setIsOnCall(true);
+    setIsVideoCall(video);
+    setCallDuration(0);
+    
+    // Start call timer
+    callTimerRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
+    
+    // Simulate connecting to call service
+    console.log(`Starting ${video ? 'video' : 'voice'} call with AI Assistant`);
+  }, []);
+
+  const endCall = useCallback(() => {
+    setIsOnCall(false);
+    setIsVideoCall(false);
+    setCallDuration(0);
+    
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+    
+    console.log('Call ended');
+  }, []);
+
+  // Settings handlers
+  const updateSettings = useCallback((section: string, key: string, value: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [key]: value
+      }
+    }));
+    
+    // In a real app, this would sync with backend
+    console.log(`Updated ${section}.${key} to ${value}`);
+  }, []);
+
+  // Search functionality
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setShowSearchResults(query.length > 0);
+  }, []);
+
+  // Enhanced search with results clearing
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+  }, []);
+
+  const formatCallDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -259,39 +586,133 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
         <div className="flex items-center space-x-2">
           {/* Search */}
           <button
+            onClick={() => {
+              const query = prompt('Search messages:');
+              if (query) handleSearch(query);
+            }}
             className="p-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
             title="Search messages"
           >
             <Search className="w-4 h-4 text-surface-600 dark:text-surface-400" />
           </button>
 
+          {/* Voice call */}
+          <button
+            onClick={() => startCall(false)}
+            disabled={isOnCall}
+            className={`p-2 rounded-lg transition-colors ${
+              isOnCall && !isVideoCall
+                ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
+                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+            }`}
+            title="Start voice call"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
+
           {/* Video call */}
           <button
-            onClick={chat.isScreenSharing ? chat.stopScreenShare : chat.startScreenShare}
+            onClick={() => startCall(true)}
+            disabled={isOnCall}
             className={`p-2 rounded-lg transition-colors ${
-              chat.isScreenSharing 
+              isVideoCall
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
+                : chat.isScreenSharing 
                 ? 'bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-400'
                 : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
             }`}
-            title={chat.isScreenSharing ? 'Stop screen sharing' : 'Start screen sharing'}
+            title={chat.isScreenSharing ? 'Stop screen sharing' : 'Start video call'}
           >
             {chat.isScreenSharing ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+          </button>
+
+          {/* Info panel */}
+          <button
+            onClick={() => setShowInfoPanel(!showInfoPanel)}
+            className={`p-2 rounded-lg transition-colors ${
+              showInfoPanel 
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
+                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+            }`}
+            title="Chat information"
+          >
+            <Info className="w-4 h-4" />
           </button>
 
           {/* Settings */}
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              showSettings
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
+                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+            }`}
             title="Settings"
           >
-            <Settings className="w-4 h-4 text-surface-600 dark:text-surface-400" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      {/* Call Status */}
+      {isOnCall && (
+        <div className="px-4 py-2 bg-green-100 dark:bg-green-900/20 border-b border-green-200 dark:border-green-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {isVideoCall ? <Video className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Phone className="w-4 h-4 text-green-600 dark:text-green-400" />}
+              <span className="text-sm text-green-700 dark:text-green-300">
+                {isVideoCall ? 'Video call' : 'Voice call'} • {formatCallDuration(callDuration)}
+              </span>
+            </div>
+            <button
+              onClick={endCall}
+              className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              title="End call"
+            >
+              <PhoneOff className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Search Results Banner */}
+      {showSearchResults && (
+        <div className="px-4 py-3 bg-blue-100 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div>
+                <span className="text-sm text-blue-700 dark:text-blue-300">
+                  Searching for "{searchQuery}"
+                </span>
+                {searchStats && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    {searchStats.totalResults} result{searchStats.totalResults !== 1 ? 's' : ''} found
+                    {searchStats.totalResults > 0 && (
+                      <span className="ml-2">
+                        (Text: {searchStats.messageTypes.text || 0}, 
+                        Files: {searchStats.messageTypes.file || 0}, 
+                        Voice: {searchStats.messageTypes.voice || 0})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={clearSearch}
+              className="p-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded"
+              title="Clear search"
+            >
+              <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div
-        className={`flex-1 overflow-y-auto p-4 space-y-4 ${
+        className={`flex-1 overflow-y-auto scrollbar-hidden p-4 space-y-4 ${
           dragOver ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-600' : ''
         }`}
         onDragOver={handleDragOver}
@@ -307,7 +728,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
           </div>
         )}
 
-        {messages.map((msg: ChatMessage) => (
+        {allMessages.map((msg: ChatMessage) => (
           <div
             key={msg.id}
             className={`flex ${msg.senderType === 'admin' ? 'justify-end' : 'justify-start'}`}
@@ -386,22 +807,71 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
                   {/* File attachment */}
                   {msg.type === 'file' && msg.fileData && (
-                    <div className="mt-2 p-2 rounded bg-surface-100 dark:bg-surface-800">
-                      <div className="flex items-center space-x-2">
-                        {msg.fileData.type.startsWith('image/') ? (
-                          <Image className="w-4 h-4" />
-                        ) : (
-                          <File className="w-4 h-4" />
-                        )}
-                        <span className="text-xs">{msg.fileData.name}</span>
-                        <a
-                          href={msg.fileData.url}
-                          download={msg.fileData.name}
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <Download className="w-3 h-3" />
-                        </a>
+                    <div className="mt-2 p-3 rounded-lg bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {msg.fileData.type.startsWith('image/') ? (
+                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                              <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            </div>
+                          ) : msg.fileData.type.includes('pdf') ? (
+                            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            </div>
+                          ) : msg.fileData.type.includes('sheet') || msg.fileData.name.endsWith('.xlsx') || msg.fileData.name.endsWith('.csv') ? (
+                            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+                              <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                              <File className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
+                            {msg.fileData.name}
+                          </div>
+                          <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">
+                            {(msg.fileData.size / 1024).toFixed(1)} KB
+                            {msg.fileData.type.startsWith('image/') && (
+                              <span className="ml-2">• Image</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          {msg.fileData.type.startsWith('image/') && msg.fileData.url !== '#' && (
+                            <button
+                              onClick={() => window.open(msg.fileData!.url, '_blank')}
+                              className="p-2 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-lg transition-colors"
+                              title="Preview image"
+                            >
+                              <Eye className="w-4 h-4 text-surface-600 dark:text-surface-400" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              // In a real app, this would handle file download
+                              console.log('Downloading file:', msg.fileData!.name);
+                            }}
+                            className="p-2 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-lg transition-colors"
+                            title="Download file"
+                          >
+                            <Download className="w-4 h-4 text-surface-600 dark:text-surface-400" />
+                          </button>
+                        </div>
                       </div>
+                      {/* Image preview for image files */}
+                      {msg.fileData.type.startsWith('image/') && msg.fileData.url !== '#' && (
+                        <div className="mt-3">
+                          <img
+                            src={msg.fileData.url}
+                            alt={msg.fileData.name}
+                            className="max-w-full h-auto rounded-lg border border-surface-200 dark:border-surface-700"
+                            style={{ maxHeight: '200px' }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -606,23 +1076,81 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
         {/* Templates */}
         {showTemplates && (
           <div className="mb-3 p-3 bg-surface-200 dark:bg-surface-700 rounded-lg">
-            <div className="grid grid-cols-2 gap-2">
-              {MESSAGE_TEMPLATES.map((template, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setMessage(template);
-                    setShowTemplates(false);
-                    messageInputRef.current?.focus();
-                  }}
-                  className="p-2 text-left text-sm bg-surface-100 dark:bg-surface-800 hover:bg-surface-300 dark:hover:bg-surface-600 rounded transition-colors"
-                >
-                  {template}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-surface-900 dark:text-surface-100 mb-2">Message Templates</h4>
+              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                {MESSAGE_TEMPLATES.map((template, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setMessage(template.content);
+                      setShowTemplates(false);
+                      messageInputRef.current?.focus();
+                    }}
+                    className="p-3 text-left bg-surface-100 dark:bg-surface-800 hover:bg-surface-300 dark:hover:bg-surface-600 rounded transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-surface-900 dark:text-surface-100">{template.name}</div>
+                        <div className="text-xs text-surface-600 dark:text-surface-400 mt-1">{template.content}</div>
+                      </div>
+                      <span className="text-xs bg-surface-200 dark:bg-surface-700 px-2 py-1 rounded text-surface-500 dark:text-surface-500">
+                        {template.shortcut}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
+
+        {/* File Sharing Demo Section */}
+        <div className="mb-4 p-4 bg-surface-100 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700">
+          <h4 className="text-sm font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+            <File className="w-4 h-4 mr-2" />
+            File Sharing Examples
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            {FILE_SHARING_EXAMPLES.map((file) => {
+              const IconComponent = file.icon;
+              return (
+                <div
+                  key={file.id}
+                  className="p-3 bg-surface-50 dark:bg-surface-900 rounded-lg border border-surface-200 dark:border-surface-700 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors cursor-pointer"
+                  onClick={() => {
+                    // Simulate sharing this file
+                    const fileMessage = `📎 ${file.name}`;
+                    setMessage(fileMessage);
+                    console.log('Sharing file:', file.name);
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                        <IconComponent className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-surface-900 dark:text-surface-100 truncate">
+                        {file.name}
+                      </div>
+                      <div className="text-xs text-surface-500 dark:text-surface-400 mt-1">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </div>
+                      <div className="text-xs text-surface-600 dark:text-surface-400 mt-1 line-clamp-2">
+                        {file.preview}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-xs text-surface-500 dark:text-surface-400 text-center">
+            Click any example to add it to your message
+          </div>
+        </div>
 
         <div className="flex items-end space-x-3">
           {/* Attachment button */}
@@ -754,9 +1282,146 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
         )}
       </div>
 
+      {/* Info Panel */}
+      {showInfoPanel && (
+        <div className="absolute top-16 right-4 w-80 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-xl z-20 max-h-96 overflow-y-auto scrollbar-hidden">
+          <div className="p-4 border-b border-surface-200 dark:border-surface-700">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-surface-900 dark:text-surface-100">Chat Information</h3>
+              <button
+                onClick={() => setShowInfoPanel(false)}
+                className="p-1 hover:bg-surface-200 dark:hover:bg-surface-700 rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* Participants */}
+            <div>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2 flex items-center">
+                <Users className="w-4 h-4 mr-2" />
+                Participants ({conversationInfo.participants.length})
+              </h4>
+              <div className="space-y-3">
+                {conversationInfo.participants.map((participant) => (
+                  <div key={participant.id} className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                      <span className="text-white text-xs font-semibold">
+                        {participant.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-surface-900 dark:text-surface-100">
+                          {participant.name}
+                        </span>
+                        <span className={`w-2 h-2 rounded-full ${
+                          participant.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                        }`} />
+                      </div>
+                      <p className="text-xs text-surface-600 dark:text-surface-400">
+                        {participant.role}
+                      </p>
+                      <p className="text-xs text-surface-600 dark:text-surface-400">
+                        {participant.email}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Analytics */}
+            <div>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2 flex items-center">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Analytics
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-surface-600 dark:text-surface-400">Total Messages:</span>
+                  <span className="font-medium text-surface-900 dark:text-surface-100">
+                    {conversationInfo.analytics.totalMessages}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-surface-600 dark:text-surface-400">Messages Today:</span>
+                  <span className="font-medium text-surface-900 dark:text-surface-100">
+                    {conversationInfo.analytics.messagesSentToday}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-surface-600 dark:text-surface-400">Avg Response:</span>
+                  <span className="font-medium text-surface-900 dark:text-surface-100">
+                    {conversationInfo.analytics.averageResponseTime}
+                  </span>
+                </div>
+              </div>
+
+              {/* Message Types Chart */}
+              <div className="mt-3">
+                <span className="text-xs text-surface-600 dark:text-surface-400 mb-2 block">Message Types:</span>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-full bg-surface-200 dark:bg-surface-700 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full" 
+                        style={{ width: `${conversationInfo.analytics.messageTypes.text}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-surface-600 dark:text-surface-400 w-12">
+                      {conversationInfo.analytics.messageTypes.text}% Text
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-full bg-surface-200 dark:bg-surface-700 rounded-full h-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full" 
+                        style={{ width: `${conversationInfo.analytics.messageTypes.voice}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-surface-600 dark:text-surface-400 w-12">
+                      {conversationInfo.analytics.messageTypes.voice}% Voice
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-full bg-surface-200 dark:bg-surface-700 rounded-full h-2">
+                      <div 
+                        className="bg-purple-500 h-2 rounded-full" 
+                        style={{ width: `${conversationInfo.analytics.messageTypes.files}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-surface-600 dark:text-surface-400 w-12">
+                      {conversationInfo.analytics.messageTypes.files}% Files
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Common Topics */}
+            <div>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2">Common Topics</h4>
+              <div className="flex flex-wrap gap-1">
+                {conversationInfo.analytics.commonTopics.map((topic, index) => (
+                  <span 
+                    key={index}
+                    className="px-2 py-1 bg-surface-200 dark:bg-surface-700 rounded-full text-xs text-surface-700 dark:text-surface-300"
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Settings Panel */}
       {showSettings && (
-        <div className="absolute top-16 right-4 w-80 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-xl z-20 max-h-96 overflow-y-auto">
+        <div className="absolute top-16 right-4 w-96 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-xl z-20 max-h-[500px] overflow-y-auto scrollbar-hidden">
           <div className="p-4 border-b border-surface-200 dark:border-surface-700">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-surface-900 dark:text-surface-100">Chat Settings</h3>
@@ -769,100 +1434,222 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
             </div>
           </div>
 
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-6">
             {/* Theme Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2">Theme</h4>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+                <Monitor className="w-4 h-4 mr-2" />
+                Theme
+              </h4>
               <div className="space-y-2">
                 <button
                   onClick={() => setThemeMode('light')}
-                  className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
-                    theme === 'light' ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                  className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    theme === 'light' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
                   }`}
                 >
                   <Sun className="w-4 h-4" />
                   <span className="text-sm">Light</span>
+                  {theme === 'light' && <Check className="w-4 h-4 ml-auto" />}
                 </button>
                 <button
                   onClick={() => setThemeMode('dark')}
-                  className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
-                    theme === 'dark' ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                  className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    theme === 'dark' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
                   }`}
                 >
                   <Moon className="w-4 h-4" />
                   <span className="text-sm">Dark</span>
-                </button>
-                <button
-                  onClick={() => setThemeMode('comfort')}
-                  className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
-                    theme === 'comfort' ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
-                  }`}
-                >
-                  <Eye className="w-4 h-4" />
-                  <span className="text-sm">Comfort</span>
+                  {theme === 'dark' && <Check className="w-4 h-4 ml-auto" />}
                 </button>
                 <button
                   onClick={() => setThemeMode('system')}
-                  className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors ${
-                    theme === 'system' ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                  className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    theme === 'system' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
                   }`}
                 >
                   <Monitor className="w-4 h-4" />
                   <span className="text-sm">System</span>
+                  {theme === 'system' && <Check className="w-4 h-4 ml-auto" />}
                 </button>
               </div>
             </div>
 
-            {/* Accessibility */}
+            {/* Accessibility Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2">Accessibility</h4>
-              <div className="space-y-2">
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">High contrast mode</span>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+                <Eye className="w-4 h-4 mr-2" />
+                Accessibility
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">High Contrast</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.accessibility.highContrast}
+                    onChange={(e) => updateSettings('accessibility', 'highContrast', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">Large text</span>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Large Text</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.accessibility.largeText}
+                    onChange={(e) => updateSettings('accessibility', 'largeText', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm">Keyboard shortcuts</span>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Keyboard Shortcuts</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.accessibility.keyboardShortcuts}
+                    onChange={(e) => updateSettings('accessibility', 'keyboardShortcuts', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
               </div>
             </div>
 
-            {/* Notifications */}
+            {/* Notification Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2">Notifications</h4>
-              <div className="space-y-2">
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm">Desktop notifications</span>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+                <Bell className="w-4 h-4 mr-2" />
+                Notifications
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Desktop Notifications</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications.desktop}
+                    onChange={(e) => updateSettings('notifications', 'desktop', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm">Sound notifications</span>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Sound Alerts</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications.sound}
+                    onChange={(e) => updateSettings('notifications', 'sound', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Mention Alerts</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications.mentions}
+                    onChange={(e) => updateSettings('notifications', 'mentions', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Reaction Alerts</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications.reactions}
+                    onChange={(e) => updateSettings('notifications', 'reactions', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
               </div>
             </div>
 
-            {/* Privacy */}
+            {/* Privacy Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-2">Privacy</h4>
-              <div className="space-y-2">
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm">Read receipts</span>
+              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+                <Shield className="w-4 h-4 mr-2" />
+                Privacy
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Read Receipts</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.privacy.readReceipts}
+                    onChange={(e) => updateSettings('privacy', 'readReceipts', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm">Typing indicators</span>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Typing Indicators</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.privacy.typingIndicators}
+                    onChange={(e) => updateSettings('privacy', 'typingIndicators', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
-                <label className="flex items-center space-x-3">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">End-to-end encryption</span>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">End-to-End Encryption</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.privacy.encryption}
+                    onChange={(e) => updateSettings('privacy', 'encryption', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
                 </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-surface-700 dark:text-surface-300">Online Status</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.privacy.onlineStatus}
+                    onChange={(e) => updateSettings('privacy', 'onlineStatus', e.target.checked)}
+                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Settings Actions */}
+            <div className="pt-4 border-t border-surface-200 dark:border-surface-700">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    // Save settings to localStorage for persistence
+                    localStorage.setItem('chatSettings', JSON.stringify(settings));
+                    console.log('Settings saved successfully');
+                    // Show toast notification
+                    toast.success('Settings saved successfully');
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Save Settings
+                </button>
+                <button
+                  onClick={() => {
+                    // Reset to default settings
+                    setSettings({
+                      accessibility: {
+                        highContrast: false,
+                        largeText: false,
+                        keyboardShortcuts: true
+                      },
+                      notifications: {
+                        desktop: true,
+                        sound: true,
+                        mentions: true,
+                        reactions: true
+                      },
+                      privacy: {
+                        readReceipts: true,
+                        typingIndicators: true,
+                        encryption: false,
+                        onlineStatus: true
+                      }
+                    });
+                    console.log('Settings reset to defaults');
+                  }}
+                  className="flex-1 bg-surface-200 hover:bg-surface-300 dark:bg-surface-700 dark:hover:bg-surface-600 text-surface-700 dark:text-surface-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="mt-3 text-xs text-surface-500 dark:text-surface-400 text-center">
+                Settings are automatically saved to your browser
               </div>
             </div>
           </div>

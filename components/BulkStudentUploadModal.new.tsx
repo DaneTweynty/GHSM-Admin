@@ -379,7 +379,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-6 overflow-y-auto scrollbar-hidden max-h-[calc(90vh-140px)]">
           {step === 'upload' && (
             <div className="space-y-6">
               {/* Instructions */}
@@ -451,7 +451,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
               {errors.length > 0 && (
                 <div className="bg-status-red/10 border border-status-red/20 rounded-lg p-4">
                   <h4 className="font-medium text-status-red mb-2">Validation Errors</h4>
-                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto">
+                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto scrollbar-hidden">
                     {errors.map((error, index) => (
                       <div key={index} className="flex items-start space-x-1">
                         <span className="text-status-red">•</span>
@@ -508,7 +508,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
 
               {/* Preview Table */}
               <div className="border border-surface-border dark:border-slate-700 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-h-96">
+                <div className="overflow-x-auto scrollbar-hidden max-h-96">
                   <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
                     <thead className="bg-surface-table-header dark:bg-slate-700">
                       <tr>

@@ -89,7 +89,7 @@ export const InstructorProfilePopover: React.FC<InstructorProfileModalProps> = (
           aria-labelledby="instructor-profile-title"
         >
           <Card>
-            <div className="max-h-[80vh] overflow-y-auto thin-scroll">
+            <div className="max-h-[80vh] overflow-y-auto scrollbar-hidden">
               <div className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 {/* Header */}
                 <div className="flex items-start justify-between mb-6">
@@ -197,7 +197,7 @@ export const InstructorProfilePopover: React.FC<InstructorProfileModalProps> = (
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 uppercase tracking-wide">
                       Current Students ({instructorStudents.length})
                     </h4>
-                    <div className="space-y-2 max-h-40 overflow-y-auto thin-scroll">
+                    <div className="space-y-2 max-h-40 overflow-y-auto scrollbar-hidden">
                       {instructorStudents.slice(0, 8).map(student => (
                         <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-slate-800 ring-1 ring-gray-200 dark:ring-slate-700">
                           <span className="text-sm font-medium text-text-primary dark:text-slate-200 truncate mr-2">{student.name}</span>
