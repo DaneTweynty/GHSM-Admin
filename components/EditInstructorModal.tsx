@@ -116,21 +116,24 @@ export const EditInstructorModal: React.FC<EditInstructorModalProps> = ({ isOpen
     const errors = { ...validationErrors };
     
     switch (fieldName) {
-      case 'name':
+      case 'name': {
         const nameError = validateName(value);
         if (nameError) errors.name = nameError;
         else delete errors.name;
         break;
-      case 'email':
+      }
+      case 'email': {
         const emailError = validateEmail(value);
         if (emailError) errors.email = emailError;
         else delete errors.email;
         break;
-      case 'phone':
+      }
+      case 'phone': {
         const phoneError = validatePhone(value);
         if (phoneError) errors.phone = phoneError;
         else delete errors.phone;
         break;
+      }
     }
     
     setValidationErrors(errors);

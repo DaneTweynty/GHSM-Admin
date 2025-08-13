@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useChat } from '../hooks/useChat';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, MessageReaction } from '../types';
 import toast from 'react-hot-toast';
 import { 
   Send, 
@@ -46,7 +46,6 @@ import {
   Info,
   Users,
   MessageSquare,
-  PhoneCall,
   PhoneOff,
   Bell
 } from 'lucide-react';
@@ -358,7 +357,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Call functionality
   const startCall = useCallback((video: boolean = false) => {
@@ -371,8 +370,14 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
       setCallDuration(prev => prev + 1);
     }, 1000);
     
-    // Simulate connecting to call service
-    console.log(`Starting ${video ? 'video' : 'voice'} call with AI Assistant`);
+    // Show toast notification for future feature
+    toast.success(
+      `${video ? 'Video' : 'Voice'} call feature will be available in future updates!`,
+      { 
+        duration: 3000,
+        icon: video ? '📹' : '📞' 
+      }
+    );
   }, []);
 
   const endCall = useCallback(() => {
@@ -385,7 +390,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
       callTimerRef.current = null;
     }
     
-    console.log('Call ended');
+    // Call ended
   }, []);
 
   // Settings handlers
@@ -398,8 +403,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
       }
     }));
     
-    // In a real app, this would sync with backend
-    console.log(`Updated ${section}.${key} to ${value}`);
+    // In a real app, this would sync with backend - Updated settings
   }, []);
 
   // Search functionality
@@ -419,6 +423,30 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Message handlers
+  const handleSendMessage = useCallback(async () => {
+    if (!message.trim() && !replyToMessage) return;
+
+    let content = message.trim();
+    if (replyToMessage) {
+      content = `@${replyToMessage.senderName}: ${content}`;
+    }
+
+    if (showScheduler && scheduledDate && scheduledTime) {
+      const sendAt = new Date(`${scheduledDate}T${scheduledTime}`);
+      await chat.scheduleMessage(content, sendAt);
+      setShowScheduler(false);
+      setScheduledDate('');
+      setScheduledTime('');
+    } else {
+      await chat.sendMessage(content);
+    }
+
+    setMessage('');
+    setReplyToMessage(null);
+    messageInputRef.current?.focus();
+  }, [message, replyToMessage, showScheduler, scheduledDate, scheduledTime, chat]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -474,31 +502,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
       return () => currentRef.removeEventListener('keydown', handleKeyDown);
     }
     return () => {}; // Return empty cleanup function when ref is not available
-  }, [showEmojiPicker, chat]);
-
-  // Message handlers
-  const handleSendMessage = useCallback(async () => {
-    if (!message.trim() && !replyToMessage) return;
-
-    let content = message.trim();
-    if (replyToMessage) {
-      content = `@${replyToMessage.senderName}: ${content}`;
-    }
-
-    if (showScheduler && scheduledDate && scheduledTime) {
-      const sendAt = new Date(`${scheduledDate}T${scheduledTime}`);
-      await chat.scheduleMessage(content, sendAt);
-      setShowScheduler(false);
-      setScheduledDate('');
-      setScheduledTime('');
-    } else {
-      await chat.sendMessage(content);
-    }
-
-    setMessage('');
-    setReplyToMessage(null);
-    messageInputRef.current?.focus();
-  }, [message, replyToMessage, showScheduler, scheduledDate, scheduledTime, chat]);
+  }, [showEmojiPicker, chat, handleSendMessage]);
 
   const handleEditMessage = useCallback(async (messageId: string) => {
     if (!editingContent.trim()) return;
@@ -543,11 +547,11 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   const getStatusIcon = (status: ChatMessage['status']) => {
     switch (status) {
       case 'sending':
-        return <Clock className="w-3 h-3 text-surface-600 dark:text-surface-400" />;
+        return <Clock className="w-3 h-3 text-text-tertiary dark:text-slate-400" />;
       case 'sent':
-        return <Check className="w-3 h-3 text-surface-600 dark:text-surface-400" />;
+        return <Check className="w-3 h-3 text-text-tertiary dark:text-slate-400" />;
       case 'delivered':
-        return <CheckCheck className="w-3 h-3 text-surface-600 dark:text-surface-400" />;
+        return <CheckCheck className="w-3 h-3 text-text-tertiary dark:text-slate-400" />;
       case 'read':
         return <CheckCheck className="w-3 h-3 text-blue-500" />;
       default:
@@ -562,13 +566,13 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
   };
 
   // Get current conversation messages
-  const currentConversation = chat.conversations.find(conv => conv.id === conversationId);
-  const messages = chat.messages || [];
+  const _currentConversation = chat.conversations.find(conv => conv.id === conversationId);
+  const _messages = chat.messages || [];
 
   return (
-    <div className={`flex flex-col h-full bg-surface-main ${className}`}>
+    <div className={`flex flex-col h-full bg-surface-main dark:bg-slate-900 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-surface-border bg-surface-header">
+      <div className="flex items-center justify-between p-4 border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
             <span className="text-white text-sm font-semibold">AI</span>
@@ -583,17 +587,17 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           {/* Search */}
           <button
             onClick={() => {
               const query = prompt('Search messages:');
               if (query) handleSearch(query);
             }}
-            className="p-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
             title="Search messages"
           >
-            <Search className="w-4 h-4 text-surface-600 dark:text-surface-400" />
+            <Search className="w-4 h-4 text-text-tertiary dark:text-slate-400" />
           </button>
 
           {/* Voice call */}
@@ -603,7 +607,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
             className={`p-2 rounded-lg transition-colors ${
               isOnCall && !isVideoCall
                 ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
-                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+                : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-tertiary dark:text-slate-400'
             }`}
             title="Start voice call"
           >
@@ -619,7 +623,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                 : chat.isScreenSharing 
                 ? 'bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-400'
-                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+                : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-tertiary dark:text-slate-400'
             }`}
             title={chat.isScreenSharing ? 'Stop screen sharing' : 'Start video call'}
           >
@@ -632,7 +636,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
             className={`p-2 rounded-lg transition-colors ${
               showInfoPanel 
                 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
-                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+                : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-tertiary dark:text-slate-400'
             }`}
             title="Chat information"
           >
@@ -645,7 +649,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
             className={`p-2 rounded-lg transition-colors ${
               showSettings
                 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
-                : 'hover:bg-surface-200 dark:hover:bg-surface-700 text-surface-600 dark:text-surface-400'
+                : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-tertiary dark:text-slate-400'
             }`}
             title="Settings"
           >
@@ -737,7 +741,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
               className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl relative group ${
                 msg.senderType === 'admin'
                   ? 'bg-blue-500 text-white'
-                  : 'bg-surface-200 dark:bg-surface-700 text-surface-900 dark:text-surface-100'
+                  : 'bg-gray-100 dark:bg-slate-700 comfort:bg-stone-100 text-text-primary dark:text-slate-100 comfort:text-text-primary border border-gray-300 dark:border-slate-600 comfort:border-stone-300'
               } ${
                 chat.selectedMessages.includes(msg.id)
                   ? 'ring-2 ring-blue-400 dark:ring-blue-500'
@@ -852,7 +856,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                           <button
                             onClick={() => {
                               // In a real app, this would handle file download
-                              console.log('Downloading file:', msg.fileData!.name);
+                              // Downloading file: ${msg.fileData!.name}
                             }}
                             className="p-2 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-lg transition-colors"
                             title="Download file"
@@ -891,7 +895,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {msg.reactions.map((reaction: any, index: number) => (
+                      {msg.reactions.map((reaction: MessageReaction, index: number) => (
                         <span
                           key={index}
                           className="text-xs bg-surface-100 dark:bg-surface-800 rounded-full px-2 py-1"
@@ -906,7 +910,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
               {/* Message timestamp and status */}
               <div className={`flex items-center justify-between mt-2 text-xs ${
-                msg.senderType === 'admin' ? 'text-blue-100' : 'text-surface-500 dark:text-surface-400'
+                msg.senderType === 'admin' ? 'text-blue-200 dark:text-blue-300' : 'text-surface-600 dark:text-surface-300'
               }`}>
                 <span>{formatTime(msg.timestamp)}</span>
                 <div className="flex items-center space-x-1">
@@ -1122,7 +1126,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                     // Simulate sharing this file
                     const fileMessage = `📎 ${file.name}`;
                     setMessage(fileMessage);
-                    console.log('Sharing file:', file.name);
+                    // Sharing file: ${file.name}
                   }}
                 >
                   <div className="flex items-start space-x-3">
@@ -1191,7 +1195,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                 }
               }}
               placeholder="Type a message..."
-              className="w-full px-4 py-3 pr-12 rounded-xl border border-surface-border bg-surface-input text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none max-h-32"
+              className="w-full px-4 py-3 pr-12 rounded-xl border border-surface-border dark:border-slate-700 bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 placeholder-text-tertiary dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none max-h-32"
               rows={1}
               style={{ minHeight: '48px' }}
             />
@@ -1199,17 +1203,17 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
             {/* Emoji picker button */}
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
               title="Add emoji"
             >
-              <Smile className="w-4 h-4 text-surface-600 dark:text-surface-400" />
+              <Smile className="w-4 h-4 text-text-tertiary dark:text-slate-400" />
             </button>
 
             {/* Emoji picker */}
             {showEmojiPicker && (
               <div
                 ref={emojiPickerRef}
-                className="absolute bottom-full right-0 mb-2 bg-surface-100 dark:bg-surface-800 rounded-lg shadow-lg p-3 grid grid-cols-8 gap-2 z-10"
+                className="absolute bottom-full right-0 mb-2 bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-lg p-3 grid grid-cols-8 gap-2 z-10"
               >
                 {['😀', '😂', '😍', '🤔', '😢', '😡', '👍', '👎', '❤️', '🎉', '🔥', '💯', '😎', '🤗', '😴', '🤝'].map((emoji) => (
                   <button
@@ -1219,7 +1223,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                       setShowEmojiPicker(false);
                       messageInputRef.current?.focus();
                     }}
-                    className="p-1 hover:bg-surface-200 dark:hover:bg-surface-700 rounded text-lg"
+                    className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded text-lg transition-colors"
                   >
                     {emoji}
                   </button>
@@ -1421,15 +1425,15 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="absolute top-16 right-4 w-96 bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg shadow-xl z-20 max-h-[500px] overflow-y-auto scrollbar-hidden">
-          <div className="p-4 border-b border-surface-200 dark:border-surface-700">
+        <div className="absolute top-16 right-4 w-96 bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg shadow-xl z-20 max-h-[500px] overflow-y-auto scrollbar-hidden">
+          <div className="p-4 border-b border-surface-border dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-surface-900 dark:text-surface-100">Chat Settings</h3>
+              <h3 className="font-semibold text-text-primary dark:text-slate-100">Chat Settings</h3>
               <button
                 onClick={() => setShowSettings(false)}
-                className="p-1 hover:bg-surface-200 dark:hover:bg-surface-700 rounded"
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 text-text-primary dark:text-slate-300" />
               </button>
             </div>
           </div>
@@ -1437,7 +1441,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
           <div className="p-4 space-y-6">
             {/* Theme Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+              <h4 className="font-medium text-text-primary dark:text-slate-100 mb-3 flex items-center">
                 <Monitor className="w-4 h-4 mr-2" />
                 Theme
               </h4>
@@ -1445,7 +1449,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                 <button
                   onClick={() => setThemeMode('light')}
                   className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                    theme === 'light' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                    theme === 'light' ? 'bg-brand-primary-light text-brand-primary' : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-primary dark:text-slate-300'
                   }`}
                 >
                   <Sun className="w-4 h-4" />
@@ -1455,7 +1459,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                 <button
                   onClick={() => setThemeMode('dark')}
                   className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                    theme === 'dark' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                    theme === 'dark' ? 'bg-brand-primary-light text-brand-primary' : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-primary dark:text-slate-300'
                   }`}
                 >
                   <Moon className="w-4 h-4" />
@@ -1463,9 +1467,19 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   {theme === 'dark' && <Check className="w-4 h-4 ml-auto" />}
                 </button>
                 <button
+                  onClick={() => setThemeMode('comfort')}
+                  className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                    theme === 'comfort' ? 'bg-brand-primary-light text-brand-primary' : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-primary dark:text-slate-300'
+                  }`}
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span className="text-sm">Comfort</span>
+                  {theme === 'comfort' && <Check className="w-4 h-4 ml-auto" />}
+                </button>
+                <button
                   onClick={() => setThemeMode('system')}
                   className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                    theme === 'system' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'hover:bg-surface-200 dark:hover:bg-surface-700'
+                    theme === 'system' ? 'bg-brand-primary-light text-brand-primary' : 'hover:bg-surface-hover dark:hover:bg-slate-700 text-text-primary dark:text-slate-300'
                   }`}
                 >
                   <Monitor className="w-4 h-4" />
@@ -1477,27 +1491,27 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
 
             {/* Accessibility Settings */}
             <div>
-              <h4 className="font-medium text-surface-900 dark:text-surface-100 mb-3 flex items-center">
+              <h4 className="font-medium text-text-primary dark:text-slate-100 mb-3 flex items-center">
                 <Eye className="w-4 h-4 mr-2" />
                 Accessibility
               </h4>
               <div className="space-y-3">
                 <label className="flex items-center justify-between">
-                  <span className="text-sm text-surface-700 dark:text-surface-300">High Contrast</span>
+                  <span className="text-sm text-text-secondary dark:text-slate-300">High Contrast</span>
                   <input
                     type="checkbox"
                     checked={settings.accessibility.highContrast}
                     onChange={(e) => updateSettings('accessibility', 'highContrast', e.target.checked)}
-                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-surface-border text-brand-primary focus:ring-brand-primary"
                   />
                 </label>
                 <label className="flex items-center justify-between">
-                  <span className="text-sm text-surface-700 dark:text-surface-300">Large Text</span>
+                  <span className="text-sm text-text-secondary dark:text-slate-300">Large Text</span>
                   <input
                     type="checkbox"
                     checked={settings.accessibility.largeText}
                     onChange={(e) => updateSettings('accessibility', 'largeText', e.target.checked)}
-                    className="rounded border-surface-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-surface-border text-brand-primary focus:ring-brand-primary"
                   />
                 </label>
                 <label className="flex items-center justify-between">
@@ -1611,7 +1625,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                   onClick={() => {
                     // Save settings to localStorage for persistence
                     localStorage.setItem('chatSettings', JSON.stringify(settings));
-                    console.log('Settings saved successfully');
+                    // Settings saved successfully
                     // Show toast notification
                     toast.success('Settings saved successfully');
                   }}
@@ -1641,7 +1655,7 @@ export const EnhancedChat: React.FC<EnhancedChatProps> = ({
                         onlineStatus: true
                       }
                     });
-                    console.log('Settings reset to defaults');
+                    // Settings reset to defaults
                   }}
                   className="flex-1 bg-surface-200 hover:bg-surface-300 dark:bg-surface-700 dark:hover:bg-surface-600 text-surface-700 dark:text-surface-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >

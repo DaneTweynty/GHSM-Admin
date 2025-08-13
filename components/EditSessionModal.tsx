@@ -49,7 +49,7 @@ export const EditSessionModal: React.FC<EditSessionModalProps> = ({ isOpen, onCl
       onSave(student.id, unpaidSessionCount);
       toast.success(`Session count for ${student.name} has been updated successfully!`);
       onClose();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update session count. Please try again.');
     }
   };

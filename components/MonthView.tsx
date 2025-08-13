@@ -4,6 +4,8 @@
 import React, { useMemo } from 'react';
 import type { Lesson, Student, Instructor } from '../types';
 import { DAYS_OF_WEEK_SHORT, toYYYYMMDD } from '../constants';
+import { getEnhancedTextColor } from '../utils/color';
+import { useThemeDetection } from '../hooks/useThemeDetection';
 
 interface MonthViewProps {
   lessons: Lesson[];
@@ -32,6 +34,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   onUpdateLessonPosition,
   onLessonDragStart,
 }) => {
+  const currentTheme = useThemeDetection(); // Add reactive theme detection
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const instructorMap = useMemo(() => new Map(instructors.map(i => [i.id, i])), [instructors]);
 
@@ -104,7 +107,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
         return (
           <div 
             key={index} 
-            className={`relative p-1 sm:p-1.5 min-h-[90px] md:min-h-[120px] flex flex-col transition-colors ${isCurrentMonth ? 'bg-surface-card dark:bg-slate-800' : 'bg-surface-header/50 dark:bg-slate-900/50'}`}
+            className={`relative p-1 sm:p-1.5 min-h-[90px] md:min-h-[120px] flex flex-col transition-all duration-200 ${isCurrentMonth ? 'bg-surface-card dark:bg-slate-800 comfort:bg-comfort-card shadow-sm hover:shadow-md border border-surface-border/50 dark:border-slate-600 comfort:border-comfort-border/50' : 'bg-surface-header/30 dark:bg-slate-900/50 comfort:bg-comfort-header/30 border border-surface-border/30 dark:border-slate-700/30 comfort:border-comfort-border/30'}`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, date)}
             onDragEnter={(e) => e.currentTarget.classList.add('bg-brand-primary-light', 'dark:bg-brand-primary/20')}
@@ -114,7 +117,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
               <div className="absolute inset-0 bg-surface-hover/30 dark:bg-slate-700/15 pointer-events-none rounded-sm" />
             )}
             <div className="flex justify-between items-start">
-              <span className={`text-xs font-semibold p-1.5 rounded-full flex items-center justify-center h-6 w-6 ${isToday ? 'bg-brand-primary text-text-on-color' : ''} ${isCurrentMonth ? 'text-text-secondary dark:text-slate-400' : 'text-text-tertiary/70 dark:text-slate-600'}`}>
+              <span className={`text-xs font-semibold p-1.5 rounded-full flex items-center justify-center h-6 w-6 ${isToday ? 'bg-brand-primary text-white font-bold ring-2 ring-brand-primary ring-offset-1' : ''} ${isCurrentMonth ? 'text-text-primary dark:text-slate-300 font-medium' : 'text-text-tertiary/70 dark:text-slate-600'}`}>
                 {date.getDate()}
               </span>
               {isCurrentMonth && (
@@ -128,13 +131,17 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   const student = studentMap.get(lesson.studentId);
                   const instructor = instructorMap.get(lesson.instructorId);
                   const hasNote = lesson.notes && lesson.notes.trim() !== '';
+                  
+                  // Get enhanced text color for better contrast based on current theme
+                  const backgroundColor = instructor?.color || '#6B7280';
+                  const { textColor, enhancedBackground } = getEnhancedTextColor(backgroundColor, currentTheme);
 
                   return (
                       <div key={lesson.id} className="relative group">
                           <button
                               onDoubleClick={(e) => { e.stopPropagation(); onEditLesson(lesson); }}
-                              style={{ backgroundColor: instructor?.color || '#6B7280' }}
-                              className={`w-full text-left p-1 md:p-1.5 rounded-md text-text-on-color dark:text-slate-800 text-[10px] md:text-[11px] leading-tight transition-all hover:opacity-80 dark:hover:opacity-90 active:cursor-grabbing cursor-grab`}
+                              style={{ backgroundColor: enhancedBackground || backgroundColor }}
+                              className={`w-full text-left p-1 md:p-1.5 rounded-md ${textColor} text-[10px] md:text-[11px] leading-tight transition-all hover:opacity-80 dark:hover:opacity-90 active:cursor-grabbing cursor-grab`}
                               title={`Lesson: ${student?.name} at ${lesson.time}${hasNote ? `\nHas note` : ''}\nDouble-click to edit.`}
                               aria-label={`Lesson for ${student?.name} at ${lesson.time}${hasNote ? '. This lesson has a note.' : ''}. Double click to edit.`}
                               draggable="true"

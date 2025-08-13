@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { control } from './ui';
 import type { Student, Instructor, Lesson, Billing } from '../types';
 import { Card } from './Card';
 import { ICONS, BILLING_CYCLE } from '../constants';
@@ -123,11 +122,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  const goToPrevious = () => {
+  const _goToPrevious = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
   };
 
-  const goToNext = () => {
+  const _goToNext = () => {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
 
@@ -187,15 +186,15 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           />
         </div>
         
-        <div className="overflow-x-auto scrollbar-hidden">
+        <div className="overflow-x-auto scrollbar-hidden shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-shadow duration-200 border border-surface-border dark:border-slate-600 rounded-lg bg-surface-card dark:bg-slate-800">
           <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700 md:table">
             <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Name</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Instrument</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Instructor</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Session Progress</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Name</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Instrument</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Instructor</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Session Progress</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -276,8 +275,8 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
                   return (
                     <React.Fragment key={student.id}>
-                      <tr className="block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell">
+                      <tr className="block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors md:shadow-sm md:hover:shadow-md md:border md:border-surface-border dark:md:border-slate-600 md:mb-2 md:rounded-lg md:bg-surface-card dark:md:bg-slate-800">
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell md:rounded-l-lg">
                           <button onClick={() => handleToggleDetails(student.id)} className="flex items-center w-full text-left group">
                              <div className="relative mr-4">
                                 <Avatar student={student} />
@@ -288,16 +287,16 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                 )}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-text-primary dark:text-slate-100 group-hover:text-brand-primary dark:group-hover:text-brand-primary transition-colors">{student.name}</div>
-                              <div className="text-xs text-text-tertiary dark:text-slate-500">ID: {student.studentIdNumber}</div>
+                              <div className="text-sm font-semibold text-text-primary dark:text-slate-100 group-hover:text-brand-primary dark:group-hover:text-brand-primary transition-colors">{student.name}</div>
+                              <div className="text-xs font-medium text-text-tertiary dark:text-slate-500">ID: {student.studentIdNumber}</div>
                             </div>
                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                           </button>
                         </td>
-                        <td data-label="Instrument" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
-                          <div className="text-sm text-text-secondary dark:text-slate-300">{student.instrument}</div>
+                        <td data-label="Instrument" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left">
+                          <div className="text-sm font-medium text-text-secondary dark:text-slate-300">{student.instrument}</div>
                         </td>
-                        <td data-label="Instructor" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
+                        <td data-label="Instructor" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left">
                           {instructor ? (
                             <div className="flex items-center justify-end md:justify-start">
                               <span 
@@ -305,7 +304,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                 style={{ backgroundColor: instructor.color }}
                                 title={`Color code for ${instructor.name}`}
                               ></span>
-                              <div className="text-sm text-text-secondary dark:text-slate-300">{instructor.name}</div>
+                              <div className="text-sm font-medium text-text-secondary dark:text-slate-300">{instructor.name}</div>
                             </div>
                           ) : (
                             <div className="text-sm text-text-tertiary dark:text-slate-500">Unassigned</div>
@@ -327,7 +326,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                   {unpaidSessions}
                                 </div>
                                 <div className="w-full">
-                                    <div className="w-full bg-surface-input dark:bg-slate-700 rounded-full h-2.5" title={`${sessionsForProgressBar} out of ${BILLING_CYCLE} sessions in this cycle`}>
+                                    <div className="w-full bg-gray-200 dark:bg-slate-700 comfort:bg-stone-200 rounded-full h-2.5 border border-gray-300 dark:border-slate-600 comfort:border-stone-300" title={`${sessionsForProgressBar} out of ${BILLING_CYCLE} sessions in this cycle`}>
                                         <div 
                                             className={`h-2.5 rounded-full transition-all duration-500 ${unpaidSessions >= BILLING_CYCLE ? 'bg-status-yellow' : 'bg-brand-primary'}`}
                                             style={{ width: `${progressPercentage}%` }}

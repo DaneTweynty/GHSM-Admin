@@ -54,7 +54,7 @@ export const InvoicePreviewModal: React.FC<Props> = ({ isOpen, onClose, billing,
       link.remove();
       toast.dismiss();
       toast.success(`Invoice for ${billing.studentName} saved successfully!`);
-    } catch (error) {
+    } catch {
       toast.dismiss();
       toast.error('Failed to save invoice. Please try again.');
     }

@@ -77,7 +77,7 @@ const CopyIcon = () => (
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
   </svg>
 );
-const CheckIcon = () => (
+const _CheckIcon = () => (
   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
@@ -120,7 +120,7 @@ const DetailItem: React.FC<{ label: string; value?: string | number; copiable?: 
 };
 
 export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, lessons, billings, instructors }) => {
-  const { handleMarkAttendance, handleUpdateStudentContact } = useApp();
+  const { handleMarkAttendance: _handleMarkAttendance, handleUpdateStudentContact } = useApp();
   const [showBreakdown, setShowBreakdown] = React.useState<null | { id: string }>(null);
   const instructorMap = useMemo(() => new Map<string, Instructor>(instructors.map(i => [i.id, i] as [string, Instructor])), [instructors]);
 
@@ -136,7 +136,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
   const [errors, setErrors] = useState<{ contactPhone?: string; gPhone?: string }>({});
 
   const isMinor = (student.age ?? 0) > 0 && (student.age as number) < 18;
-  const wasAttendedRecently = useMemo(() => {
+  const _wasAttendedRecently = useMemo(() => {
     if (!student.lastAttendanceMarkedAt) return false;
     const now = Date.now();
     return now - student.lastAttendanceMarkedAt < 24 * 60 * 60 * 1000;
@@ -181,8 +181,8 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         facebook: contactFacebook.trim() || undefined,
       });
       setIsEditingContact(false);
-      toast.success(`Contact information for ${student.name} has been updated successfully!`);
-    } catch (error) {
+      // Success feedback is handled by the context via transaction system
+    } catch {
       toast.error('Failed to update contact information. Please try again.');
     }
   };
@@ -201,8 +201,8 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
         guardianFacebook: gFacebook.trim() || undefined,
       });
       setIsEditingGuardian(false);
-      toast.success(`Guardian information for ${student.name} has been updated successfully!`);
-    } catch (error) {
+      // Success feedback is handled by the context via transaction system
+    } catch {
       toast.error('Failed to update guardian information. Please try again.');
     }
   };
@@ -509,7 +509,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           <div className="flex items-center gap-2">
             <ThemedSelect
               value={lessonFilter}
-              onChange={e => { setLessonFilter(e.target.value as any); setLessonPage(1); }}
+              onChange={e => { setLessonFilter(e.target.value as 'all' | 'upcoming' | 'past'); setLessonPage(1); }}
               className="text-xs px-2 py-1"
             >
               <option value="all">All</option>

@@ -1005,8 +1005,8 @@ export const EnrollmentPage: React.FC<EnrollmentPageProps> = ({ instructors, stu
             parentStudentId: isExistingStudent ? selectedExistingStudentId : undefined,
         });
         
-        // Success feedback will be handled by the parent component via successMessage prop
-        toast.success(`Student ${name} has been successfully enrolled!`);
+        // Success feedback is handled by the context via transaction system
+        // No need for manual toast here to avoid duplication
         
       } catch (error) {
         console.error('Enrollment submission error:', error);

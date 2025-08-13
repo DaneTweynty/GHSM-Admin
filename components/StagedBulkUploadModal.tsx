@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Card } from './Card';
-import { ICONS, INSTRUMENT_OPTIONS } from '../constants';
+import { INSTRUMENT_OPTIONS } from '../constants';
 import type { Student, Instructor } from '../types';
 import { AddressInput } from './AddressInput';
 import { GuardianManagement } from './GuardianInput';
-import { formatPhilippinePhone, validatePhilippinePhone, calculateAge } from '../services/philippineAddressService';
 import ThemedSelect from './ThemedSelect';
 
 // Staging data structures
@@ -41,6 +39,18 @@ interface StagedBulkUploadModalProps {
   maxBatchSize?: number;
 }
 
+// Helper function for age calculation
+const calculateAge = (birthdate: string | Date): number => {
+  const birth = typeof birthdate === 'string' ? new Date(birthdate) : birthdate;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   isOpen,
   onClose,
@@ -60,7 +70,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   
   // Drag and drop state
   const [isDragOver, setIsDragOver] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
+  const [_dragCounter, setDragCounter] = useState(0);
   
   // Enrollment form state for current student
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -174,7 +184,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   }, [currentStudentIndex, stagedUpload, step]);
 
   // Complete form reset helper for better address clearing
-  const resetFormCompletely = () => {
+  const _resetFormCompletely = () => {
     setEnrollmentForm({
       name: '',
       nickname: '',
@@ -258,7 +268,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   };
 
   // Form handlers
-  const handleFormChange = (field: string, value: any) => {
+  const handleFormChange = (field: string, value: string | number | boolean | Date | null) => {
     setEnrollmentForm(prev => ({
       ...prev,
       [field]: value
@@ -533,16 +543,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
     return { valid, errors };
   };
 
-  const calculateAge = (birthdate: string): number => {
-    const birth = new Date(birthdate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
+  // Using the global calculateAge function
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -583,7 +584,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
 
       setStagedUpload(staged);
       setStep('staging');
-    } catch (error) {
+    } catch {
       setErrors(['Error reading CSV file. Please check the format.']);
     } finally {
       setIsProcessing(false);
@@ -725,8 +726,8 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
   const handleBatchCommit = async (students: StagedStudent[]) => {
     const completedStudents = students.filter(s => s.status === 'completed' && s.enrollmentData);
     
-    console.log('Batch commit - Total students:', students.length);
-    console.log('Batch commit - Completed students:', completedStudents.length);
+    // Batch commit - Total students: ${students.length}
+    // Batch commit - Completed students: ${completedStudents.length}
     
     if (completedStudents.length === 0) {
       setErrors(['No students were completed for enrollment.']);
@@ -743,14 +744,14 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
         birthdate: s.csvData.birthdate,
         gender: s.csvData.gender,
         instrument: s.csvData.instrument,
-        age: s.csvData.birthdate ? calculateAge(s.csvData.birthdate) : undefined,
+        age: s.csvData.birthdate ? new Date().getFullYear() - new Date(s.csvData.birthdate).getFullYear() : undefined,
         status: 'active' as const,
         sessionsAttended: 0,
         sessionsBilled: 0,
         creditBalance: 0
       }));
 
-      console.log('Students to enroll:', studentsToEnroll);
+      // Students to enroll: ${studentsToEnroll.length} students
       await onBatchEnrollment(studentsToEnroll);
       setStep('review');
     } catch (error) {
@@ -969,7 +970,7 @@ export const StagedBulkUploadModal: React.FC<StagedBulkUploadModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
-                      {stagedUpload.students.map((student, index) => {
+                      {stagedUpload.students.map((student, _index) => {
                         const age = student.csvData.birthdate ? calculateAge(student.csvData.birthdate) : null;
                         const needsGuardian = age !== null && age < 18;
                         

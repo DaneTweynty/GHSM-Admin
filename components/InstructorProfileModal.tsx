@@ -62,7 +62,7 @@ export const InstructorProfilePopover: React.FC<InstructorProfileModalProps> = (
 
   // Calculate stats
   const instructorStudents = students.filter(s => s.instructorId === instructor.id && s.status === 'active');
-  const instructorLessons = lessons.filter(l => l.instructorId === instructor.id);
+  const _instructorLessons = lessons.filter(l => l.instructorId === instructor.id);
 
   // Responsive sizing
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;

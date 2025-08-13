@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Card } from './Card';
-import { ICONS, INSTRUMENT_OPTIONS } from '../constants';
+import { INSTRUMENT_OPTIONS } from '../constants';
 import type { Student, Instructor } from '../types';
 
 interface BulkStudentUploadModalProps {
@@ -306,7 +305,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
       setPreviewData(students);
       setStep('preview');
       toast.success(`Successfully processed ${students.length} student${students.length > 1 ? 's' : ''} from CSV file`);
-    } catch (error) {
+    } catch {
       setErrors(['Error reading CSV file. Please check the format.']);
       toast.error('Error reading CSV file. Please check the format.');
     } finally {
@@ -336,8 +335,8 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
     try {
       onUpload(studentsToAdd);
       setStep('success');
-      toast.success(`Successfully added ${studentsToAdd.length} student${studentsToAdd.length > 1 ? 's' : ''}!`);
-    } catch (error) {
+      // Success feedback is handled by the context via transaction system
+    } catch {
       toast.error('Failed to add students. Please try again.');
     } finally {
       setIsProcessing(false);

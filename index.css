@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enhanced Color Palette CSS Variables - Elegant with Strong Shadows */
+:root {
+  /* Light Theme Colors - Elegant with subtle tints and strong shadows/borders */
+  --color-brand-primary: #1D4ED8;
+  --color-brand-primary-hover: #1E40AF;
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-tertiary: #6B7280;
+  --color-surface-main: #FFFFFF;
+  --color-surface-card: #FDFDFD;         /* Very subtle off-white */
+  --color-surface-header: #FAFBFC;       /* Light gray for headers */
+  --color-surface-input: #FAFBFC;        /* Light gray for inputs */
+  --color-surface-hover: #F3F4F6;        /* Light hover state */
+  --color-surface-border: #E5E7EB;       /* Elegant border color */
+}
+
+/* Comfort Theme Colors - Elegant Warm Palette */
+.comfort {
+  --color-brand-primary: #C2410C;
+  --color-brand-primary-hover: #EA580C;
+  --color-text-primary: #1C1917;
+  --color-text-secondary: #44403C;
+  --color-text-tertiary: #78716C;
+  --color-surface-main: #FEFEFE;
+  --color-surface-card: #FDFCFB;         /* Very subtle warm tint */
+  --color-surface-header: #F9F8F7;       /* Light warm gray */
+  --color-surface-input: #FDFCFB;        /* Subtle warm inputs */
+  --color-surface-hover: #F5F4F3;        /* Light warm hover */
+  --color-surface-border: #E7E5E4;       /* Elegant warm border */
+}
+
+/* Dark Theme Colors */
+.dark {
+  --color-brand-primary: #3B82F6;
+  --color-brand-primary-hover: #2563EB;
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #E5E7EB;
+  --color-text-tertiary: #9CA3AF;
+  --color-surface-main: #111827;
+  --color-surface-card: #1F2937;
+  --color-surface-header: #374151;
+  --color-surface-input: #1F2937;
+  --color-surface-hover: #374151;
+  --color-surface-border: #4B5563;
+}
+
 /* Thin scrollbar utility for time picker lists and modals */
 .thin-scroll {
   scrollbar-width: thin; /* Firefox */

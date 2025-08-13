@@ -1,6 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { Card } from './Card';
-import { ICONS } from '../constants';
 import type { Student, Instructor } from '../types';
 
 interface BulkStudentUploadModalProps {
@@ -301,7 +299,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
 
       setPreviewData(students);
       setStep('preview');
-    } catch (error) {
+    } catch {
       setErrors(['Error reading CSV file. Please check the format.']);
     } finally {
       setIsProcessing(false);

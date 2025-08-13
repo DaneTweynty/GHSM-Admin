@@ -151,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                             <li>
                               <div className="px-4 py-2">
                                 <div className="text-sm font-medium text-text-primary dark:text-slate-200 mb-2">Theme</div>
-                                <div className="grid grid-cols-4 gap-1 bg-surface-input dark:bg-slate-900 rounded-md p-1">
+                                <div className="grid grid-cols-4 gap-1 bg-gray-100 dark:bg-slate-900 comfort:bg-stone-100 rounded-md p-1 border border-gray-300 dark:border-slate-700 comfort:border-stone-300">
                                   {(['system','light','dark','comfort'] as const).map(mode => (
                                     <button key={mode} onClick={() => setThemeMode(mode)} className={`text-xs py-1 rounded-md ${theme===mode ? 'bg-brand-primary text-text-on-color font-semibold shadow' : 'text-text-secondary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700'}`}>{mode[0].toUpperCase()+mode.slice(1)}</button>
                                   ))}
@@ -161,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                             <li>
                                 <div className="px-4 py-2">
                                     <label className="text-sm font-medium text-text-primary dark:text-slate-200">Font Size</label>
-                                    <div className="mt-2 flex bg-surface-input dark:bg-slate-900 rounded-md p-1 space-x-1">
+                                    <div className="mt-2 flex bg-gray-100 dark:bg-slate-900 comfort:bg-stone-100 rounded-md p-1 space-x-1 border border-gray-300 dark:border-slate-700 comfort:border-stone-300">
                                     {fontSizeOptions.map(item => (
                                         <button 
                                             key={item.size}

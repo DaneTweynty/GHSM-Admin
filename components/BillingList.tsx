@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import ThemedSelect from './ThemedSelect';
-import { control, buttonPrimary, buttonSecondary, card } from './ui';
-import type { Billing, Student, PaymentMethod, BillingItem, Payment } from '../types';
+import { control, buttonPrimary } from './ui';
+import type { Billing, Student, PaymentMethod, BillingItem } from '../types';
 import { Card } from './Card';
 import { ICONS } from '../constants';
 import { useApp } from '../context/AppContext';
@@ -54,19 +54,19 @@ const Avatar: React.FC<{ student?: Student }> = ({ student }) => {
     );
 };
 
-export const BillingList: React.FC<BillingListProps> = ({ billings, students, onMarkAsPaid, onRecordPayment }) => {
+export const BillingList: React.FC<BillingListProps> = ({ billings, students, onMarkAsPaid: _onMarkAsPaid, onRecordPayment }) => {
   const { handleUpdateBilling, handleRecordPayment } = useApp();
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const [breakdownBill, setBreakdownBill] = useState<Billing | null>(null);
 
   // Debug logging for billing status changes
   React.useEffect(() => {
-    const unpaidCount = billings.filter(b => b.status === 'unpaid').length;
-    const paidCount = billings.filter(b => b.status === 'paid').length;
-    console.log('BillingList re-render - Unpaid:', unpaidCount, 'Paid:', paidCount);
+    const _unpaidCount = billings.filter(b => b.status === 'unpaid').length;
+    const _paidCount = billings.filter(b => b.status === 'paid').length;
+    // BillingList re-render tracking - Unpaid: ${_unpaidCount}, Paid: ${_paidCount}
     billings.forEach(b => {
       if (b.status) {
-        console.log(`Bill ${b.id}: status=${b.status}, amount=${b.amount}, paidAmount=${b.paidAmount}`);
+        // Bill tracking: ${b.id} status=${b.status}, amount=${b.amount}, paidAmount=${b.paidAmount}
       }
     });
   }, [billings]);
@@ -234,7 +234,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
     closeEditModal();
   };
 
-  const generateInvoice = (bill: Billing) => {
+  const _generateInvoice = (bill: Billing) => {
     const student = studentMap.get(bill.studentId);
     const items: BillingItem[] = bill.items && bill.items.length > 0
       ? bill.items
@@ -382,9 +382,9 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
         try {
           const blob = new Blob([html], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
-          const w = window.open(url, '_blank');
+          const _w = window.open(url, '_blank');
           setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        } catch (e) {
+        } catch {
           const w = window.open('', '_blank');
           if (!w) return;
           w.document.open();
@@ -474,7 +474,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
  };
 
   // History row for paid bills
-  const renderHistoryRow = (bill: Billing) => {
+  const _renderHistoryRow = (bill: Billing) => {
     const student = studentMap.get(bill.studentId);
     const effectiveAmount = bill.items && bill.items.length > 0 ? bill.items.reduce((s, it) => s + it.quantity * it.unitAmount, 0) : bill.amount;
     const paidBy = summarizePayment(bill);
@@ -923,19 +923,11 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                       const creditApplied = useCredit ? Math.max(0, Math.min(creditToApply, Math.min(credit, remaining))) : 0;
                       const moneyApplied = Math.max(0, Number(payAmount) || 0);
                       
-                      console.log('Payment submission:', { 
-                        creditApplied, 
-                        moneyApplied, 
-                        paymentBill: paymentBill.id,
-                        currentStatus: paymentBill.status,
-                        total,
-                        alreadyPaid,
-                        remaining
-                      });
+                      // Payment submission tracking
                       
                       // Record credit payment first if any
                       if (creditApplied > 0) {
-                        console.log('Recording credit payment:', { amount: creditApplied, method: 'Credit' });
+                        // Recording credit payment
                         save(paymentBill.id, { 
                           amount: creditApplied, 
                           method: 'Credit',
@@ -945,7 +937,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                       
                       // Record money payment if any
                       if (moneyApplied > 0) {
-                        console.log('Recording money payment:', { amount: moneyApplied, method: payMethod });
+                        // Recording money payment
                         save(paymentBill.id, { 
                           amount: moneyApplied, 
                           method: payMethod, 

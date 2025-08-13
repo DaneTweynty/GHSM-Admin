@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { Instructor, Student, Lesson } from '../types';
 import { Card } from './Card';
 import { TeacherDetailView } from './TeacherDetailView';
@@ -89,7 +89,7 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
   };
 
   // Search handlers
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
     setExpandedInstructorId(null); // Close any expanded details when searching
