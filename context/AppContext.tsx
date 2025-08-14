@@ -873,8 +873,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const { studentData } = adminActionToConfirm;
         handleEnrollStudent(studentData);
         setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
-        // Navigate to students module after successful enrollment
-        setView('students');
+        // Note: Navigation to students page should be handled by the enrollment page component
         // Let page banners still work if any component uses the message
         setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
         pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);

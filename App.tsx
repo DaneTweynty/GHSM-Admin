@@ -1,21 +1,11 @@
-
 import React, { Suspense, lazy } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from './context/AppContext';
-import { Header } from './components/Header';
-import { LoadingSpinner } from './components/LoadingSpinner';
+import { AppRouter } from './router/AppRouter';
+import { RouterHeader } from './components/RouterHeader';
 import { TrashZone } from './components/TrashZone';
 import ErrorBoundary from './components/ErrorBoundary';
-import { CardSkeleton } from './components/LoadingSkeletons';
-
-// Lazy-load pages for route-level code splitting
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const EnrollmentPageWrapper = lazy(() => import('./pages/EnrollmentPageWrapper').then(m => ({ default: m.EnrollmentPageWrapper })));
-const TeachersPage = lazy(() => import('./pages/TeachersPage').then(m => ({ default: m.TeachersPage })));
-const StudentsPage = lazy(() => import('./pages/StudentsPage').then(m => ({ default: m.StudentsPage })));
-const BillingPage = lazy(() => import('./pages/BillingPage').then(m => ({ default: m.BillingPage })));
-const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
-const TrashPageWrapper = lazy(() => import('./pages/TrashPageWrapper').then(m => ({ default: m.TrashPageWrapper })));
 
 // Lazy-load modals to keep them out of the main bundle until opened
 const EditLessonModal = lazy(() => import('./components/EditLessonModal').then(m => ({ default: m.EditLessonModal })));
@@ -25,12 +15,11 @@ const AdminAuthModal = lazy(() => import('./components/AdminAuthModal').then(m =
 
 const AppShell: React.FC = () => {
   const {
-    view, setView,
     isLoading, error,
     theme, fontSize, handleThemeToggle, setThemeMode, handleFontSizeChange,
-  handleInstallRequest, installPromptEvent,
+    handleInstallRequest, installPromptEvent,
     handleRequestResetData,
-  isEditModalOpen, editingLesson, isAddMode, handleCloseEditModal, handleUpdateLesson, handleMoveLessonToTrash,
+    isEditModalOpen, editingLesson, isAddMode, handleCloseEditModal, handleUpdateLesson, handleMoveLessonToTrash,
     activeInstructors, students, lessons, timeSlots,
     isEditSessionModalOpen, editingStudent, handleCloseEditSessionModal, handleUpdateStudentSessions,
     isEditInstructorModalOpen, editingInstructor, isAddInstructorMode, handleCloseEditInstructorModal, handleSaveInstructor,
@@ -38,28 +27,27 @@ const AppShell: React.FC = () => {
     isDragging, handleDropOnTrash,
   } = useApp();
 
-  const renderContent = () => {
-    if (isLoading) return <div className="flex justify-center items-center h-96"><LoadingSpinner /></div>;
-    if (error) return <div className="text-center text-status-red p-8">{error}</div>;
-    switch (view) {
-      case 'dashboard':
-        return <DashboardPage />;
-      case 'enrollment':
-        return <EnrollmentPageWrapper />;
-      case 'teachers':
-        return <TeachersPage />;
-      case 'students':
-        return <StudentsPage />;
-      case 'billing':
-        return <BillingPage />;
-      case 'trash':
-        return <TrashPageWrapper />;
-      case 'chat':
-        return null; // Chat is handled separately
-      default:
-        return null;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-surface-main dark:bg-slate-900 text-text-primary dark:text-slate-200 font-sans flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
+          <p>Loading application...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-surface-main dark:bg-slate-900 text-text-primary dark:text-slate-200 font-sans flex items-center justify-center">
+        <div className="text-center text-status-red p-8">
+          <h1 className="text-xl font-bold mb-4">Application Error</h1>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface-main dark:bg-slate-900 text-text-primary dark:text-slate-200 font-sans flex flex-col">
@@ -85,9 +73,8 @@ const AppShell: React.FC = () => {
           error: { style: { background: '#dc2626' } },
         }}
       />
-      <Header
-        currentView={view}
-        setView={setView}
+      
+      <RouterHeader
         theme={theme}
         onToggleTheme={handleThemeToggle}
         setThemeMode={setThemeMode}
@@ -97,69 +84,54 @@ const AppShell: React.FC = () => {
         installPromptEvent={installPromptEvent}
         onInstallRequest={handleInstallRequest}
       />
-      {view === 'chat' ? (
-        // Chat page takes full remaining height (viewport height minus header)
-        <div className="h-[calc(100vh-4rem)]" id="main-content">
-          <Suspense fallback={
-            <div className="flex justify-center items-center h-96">
-              <CardSkeleton lines={4} />
-            </div>
-          }>
-            <ChatPage instructors={activeInstructors} />
-          </Suspense>
-        </div>
-      ) : (
-        // Other pages use full width with responsive padding
-        <main className="p-4 sm:p-6 lg:p-8 w-full" id="main-content">
-          <Suspense fallback={
-            <div className="grid gap-6">
-              <CardSkeleton lines={3} />
-              <CardSkeleton lines={5} />
-            </div>
-          }>
-            {renderContent()}
-          </Suspense>
-        </main>
-      )}
+      
+      {/* Router handles all page routing and layout */}
+      <AppRouter />
+      
+      {/* Global Modals */}
       <Suspense fallback={null}>
-      <EditLessonModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        onSave={handleUpdateLesson}
-  onMoveToTrash={handleMoveLessonToTrash}
-        lesson={editingLesson}
-        isAddMode={isAddMode}
-        instructors={activeInstructors}
-        students={students}
-        allLessons={lessons}
-        timeSlots={timeSlots}
-      />
+        <EditLessonModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSave={handleUpdateLesson}
+          onMoveToTrash={handleMoveLessonToTrash}
+          lesson={editingLesson}
+          isAddMode={isAddMode}
+          instructors={activeInstructors}
+          students={students}
+          allLessons={lessons}
+          timeSlots={timeSlots}
+        />
       </Suspense>
+      
       <Suspense fallback={null}>
-      <EditSessionModal
-        isOpen={isEditSessionModalOpen}
-        onClose={handleCloseEditSessionModal}
-        onSave={handleUpdateStudentSessions}
-        student={editingStudent}
-      />
+        <EditSessionModal
+          isOpen={isEditSessionModalOpen}
+          onClose={handleCloseEditSessionModal}
+          onSave={handleUpdateStudentSessions}
+          student={editingStudent}
+        />
       </Suspense>
+      
       <Suspense fallback={null}>
-      <EditInstructorModal
-        isOpen={isEditInstructorModalOpen}
-        onClose={handleCloseEditInstructorModal}
-        onSave={handleSaveInstructor}
-        instructor={editingInstructor}
-        isAddMode={isAddInstructorMode}
-      />
+        <EditInstructorModal
+          isOpen={isEditInstructorModalOpen}
+          onClose={handleCloseEditInstructorModal}
+          onSave={handleSaveInstructor}
+          instructor={editingInstructor}
+          isAddMode={isAddInstructorMode}
+        />
       </Suspense>
+      
       <Suspense fallback={null}>
-      <AdminAuthModal
-        isOpen={isAdminAuthModalOpen}
-        onClose={handleCloseAdminAuthModal}
-        onSuccess={handleAdminAuthSuccess}
-        actionDescription={getAdminActionDescription() || ''}
-      />
+        <AdminAuthModal
+          isOpen={isAdminAuthModalOpen}
+          onClose={handleCloseAdminAuthModal}
+          onSuccess={handleAdminAuthSuccess}
+          actionDescription={getAdminActionDescription() || ''}
+        />
       </Suspense>
+      
       <TrashZone isVisible={isDragging} onDropLesson={handleDropOnTrash} />
     </div>
   );
@@ -167,9 +139,11 @@ const AppShell: React.FC = () => {
 
 const App: React.FC = () => (
   <ErrorBoundary>
-    <AppProvider>
-      <AppShell />
-    </AppProvider>
+    <BrowserRouter>
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
+    </BrowserRouter>
   </ErrorBoundary>
 );
 
