@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { Instructor, Student, Lesson } from '../types';
 import { Card } from './Card';
 import { TeacherDetailView } from './TeacherDetailView';
@@ -52,60 +52,62 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12); // 12 instructors per page
   
-  // Filter instructors based on search query
-  const filteredInstructors = instructors.filter(instructor => {
-    if (!searchQuery.trim()) return true;
+  // Memoized event handlers
+  const handleToggleDetails = useCallback((instructorId: string) => {
+    setExpandedInstructorId(prevId => (prevId === instructorId ? null : instructorId));
+  }, []);
+
+  const handleShowProfile = useCallback((instructorId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setProfilePopoverInstructorId(instructorId);
+  }, []);
+
+  const handleCloseProfile = useCallback(() => {
+    setProfilePopoverInstructorId(null);
+  }, []);
+
+  const handleSearchChange = useCallback((newSearchTerm: string) => {
+    setSearchQuery(newSearchTerm);
+    setCurrentPage(1); // Reset to first page when searching
+    setExpandedInstructorId(null); // Close any expanded details when searching
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setCurrentPage(1);
+  }, []);
+  
+  // Memoized filtered and sorted instructors
+  const filteredInstructors = useMemo(() => {
+    if (!searchQuery.trim()) return instructors;
     
     const query = searchQuery.toLowerCase().trim();
-    const name = instructor.name.toLowerCase();
-    const status = instructor.status.toLowerCase();
-    
-    // Get specialties as searchable string
-    const specialties = instructor.specialty.join(' ').toLowerCase();
-    
-    return name.includes(query) || 
-           specialties.includes(query) || 
-           status.includes(query);
-  });
+    return instructors.filter(instructor => {
+      const name = instructor.name.toLowerCase();
+      const status = instructor.status.toLowerCase();
+      const specialties = instructor.specialty.join(' ').toLowerCase();
+      
+      return name.includes(query) || 
+             specialties.includes(query) || 
+             status.includes(query);
+    });
+  }, [instructors, searchQuery]);
+
+  // Memoized pagination calculations
+  const sortedInstructors = useMemo(() => 
+    [...filteredInstructors].sort((a, b) => a.name.localeCompare(b.name))
+  , [filteredInstructors]);
   
-  // Calculate pagination with filtered results
-  const sortedInstructors = [...filteredInstructors].sort((a, b) => a.name.localeCompare(b.name));
   const totalPages = Math.ceil(sortedInstructors.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedInstructors = sortedInstructors.slice(startIndex, endIndex);
 
-  const handleToggleDetails = (instructorId: string) => {
-    setExpandedInstructorId(prevId => (prevId === instructorId ? null : instructorId));
-  };
-
-  const handleShowProfile = (instructorId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setProfilePopoverInstructorId(instructorId);
-  };
-
-  const handleCloseProfile = () => {
-    setProfilePopoverInstructorId(null);
-  };
-
-  // Search handlers
-  const _handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
-    setExpandedInstructorId(null); // Close any expanded details when searching
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    setCurrentPage(1);
-    setExpandedInstructorId(null);
-  };
-
   // Pagination handlers
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     setExpandedInstructorId(null); // Close any expanded details when changing pages
-  };
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto"> {/* Optimal container size */}
@@ -142,11 +144,7 @@ export const TeachersList: React.FC<TeachersListProps> = ({ instructors, student
           {/* Search section */}
           <SearchBar
             value={searchQuery}
-            onChange={(value) => {
-              setSearchQuery(value);
-              setCurrentPage(1);
-              setExpandedInstructorId(null);
-            }}
+            onChange={handleSearchChange}
             placeholder="Search by name, specialty, or status..."
             showResultsCount={true}
             totalResults={instructors.length}

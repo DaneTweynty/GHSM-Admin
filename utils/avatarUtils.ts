@@ -1,7 +1,12 @@
 // Avatar generation utilities for students
 // Uses DiceBear API to generate consistent, beautiful avatars
 
-export interface AvatarOptions {
+interface Student {
+  id: string;
+  profilePictureUrl?: string;
+}
+
+interface AvatarOptions {
   seed: string;
   style?: 'pixel-art' | 'lorelei' | 'notionists' | 'personas' | 'thumbs';
   size?: number;
@@ -43,7 +48,7 @@ export const generateAvatarOptions = (name: string): { style: string; url: strin
 
   return styles.map(({ style, name: styleName, description }) => ({
     style: styleName,
-    url: generateAvatarUrl(name, { style: style as any }),
+    url: generateAvatarUrl(name, { style: style as 'pixel-art' | 'lorelei' | 'notionists' | 'personas' | 'thumbs' }),
     preview: description
   }));
 };
@@ -104,8 +109,8 @@ export const validateAvatarUrl = async (url: string): Promise<boolean> => {
  * Utility to update student avatar after enrollment
  * Can be used to refresh avatars or allow students to change them
  */
-export const updateStudentAvatar = (studentId: string, avatarUrl: string, students: any[], setStudents: any) => {
-  setStudents((prev: any[]) => 
+export const updateStudentAvatar = (studentId: string, avatarUrl: string, students: Student[], setStudents: (updater: (prev: Student[]) => Student[]) => void) => {
+  setStudents((prev: Student[]) => 
     prev.map(student => 
       student.id === studentId 
         ? { ...student, profilePictureUrl: avatarUrl }

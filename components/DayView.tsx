@@ -4,6 +4,7 @@ import { DAYS_OF_WEEK_FULL, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../
 import { addMinutes, roundToQuarter, toMinutes, toHHMM, to12Hour } from '../utils/time';
 import { getEnhancedTextColor } from '../utils/color';
 import { useThemeDetection } from '../hooks/useThemeDetection';
+import { useSessionSummaryByLesson } from '../hooks/useSupabase';
 
 interface DayViewProps {
   lessons: Lesson[];
@@ -35,6 +36,21 @@ export const DayView: React.FC<DayViewProps> = ({
   }, []);
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const instructorMap = useMemo(() => new Map(instructors.map(i => [i.id, i])), [instructors]);
+
+  // Component to check if a lesson has a session summary
+  const SessionSummaryIndicator: React.FC<{ lessonId: string }> = ({ lessonId }) => {
+    const { data: sessionSummary } = useSessionSummaryByLesson(lessonId);
+    
+    if (!sessionSummary) return null;
+    
+    return (
+      <div 
+        className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white shadow-sm"
+        title="Session summary completed"
+        aria-label="This lesson has a completed session summary"
+      />
+    );
+  };
 
   const dayOfWeek = useMemo(() => DAYS_OF_WEEK_FULL[currentDate.getDay()], [currentDate]);
   const lessonsForDay = useMemo(() => lessons.filter(l => l.date === toYYYYMMDD(currentDate)), [lessons, currentDate]);
@@ -327,6 +343,9 @@ export const DayView: React.FC<DayViewProps> = ({
                     e.currentTarget.style.opacity = '1';
                   }}
                 >
+                  {/* Session Summary Indicator */}
+                  <SessionSummaryIndicator lessonId={lesson.id} />
+                  
                   {/* left accent stripe */}
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80" style={{ background: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.35), rgba(255,255,255,0.35) 2px, transparent 2px, transparent 4px)' }} />
                   {compact ? (

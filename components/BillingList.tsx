@@ -4,7 +4,7 @@ import { control, buttonPrimary } from './ui';
 import type { Billing, Student, PaymentMethod, BillingItem } from '../types';
 import { Card } from './Card';
 import { ICONS } from '../constants';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { SearchBar } from './SearchBar';
 import { PaginationControls } from './PaginationControls';

@@ -4,7 +4,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CardSkeleton } from '../components/LoadingSkeletons';
 import { ROUTES } from '../constants/routes';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 import { ChatPage } from '../pages/ChatPage';
 
 // Lazy load pages for better performance
@@ -19,7 +19,7 @@ const TrashPageWrapper = React.lazy(() => import('../pages/TrashPageWrapper').th
 const ChatPageWrapper: React.FC = () => {
   const { instructors } = useApp();
   return (
-    <div className="h-[calc(100vh-4rem)]" id="main-content">
+    <div className="absolute inset-0 top-16 bottom-0 left-0 right-0" id="main-content">
       <ChatPage instructors={instructors} />
     </div>
   );
@@ -45,7 +45,7 @@ const StudentDetailPage: React.FC = () => {
 };
 
 const ChatConversationPage: React.FC = () => {
-  const { instructors } = useApp();
+  const { instructors: _instructors } = useApp();
   return (
     <div className="h-[calc(100vh-4rem)] p-6" id="main-content">
       <h1 className="text-2xl font-bold mb-4">Chat Conversation</h1>

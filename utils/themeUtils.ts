@@ -151,7 +151,7 @@ export const useThemeClasses = () => {
 };
 
 // Accessibility helpers
-export const getContrastRatio = (color1: string, color2: string): number => {
+export const getContrastRatio = (_color1: string, _color2: string): number => {
   // Simplified contrast ratio calculation
   // In a real implementation, this would use proper color parsing
   return 4.5; // Placeholder - ensures WCAG AA compliance

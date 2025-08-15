@@ -4,7 +4,7 @@ import ThemedSelect from './ThemedSelect';
 import { control } from './ui';
 import type { Student, Lesson, Billing, Instructor } from '../types';
 import { Card } from './Card';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 import { ICONS } from '../constants';
 
 interface StudentDetailViewProps {

@@ -1,9 +1,21 @@
 import React from 'react';
 import { Dashboard } from '../components/Dashboard';
-import { useApp } from '../context/AppContext';
+import { useStudents, useInstructors, useLessons } from '../hooks/useSupabase';
+import { useApp } from '../context/AppContext.supabase';
+import { mapLessonsToUi } from '../utils/mappers';
 
 export const DashboardPage: React.FC = () => {
-  const { activeLessons, students, instructors, currentDate, calendarView, setCalendarView, handleNavigate, handleOpenEditModal, handleOpenAddModal, handleDateSelect, handleUpdateLessonPosition, handleLessonDragStart } = useApp();
+  // Use proper Supabase queries instead of context
+  const { data: students = [] } = useStudents();
+  const { data: instructors = [] } = useInstructors();
+  const { data: dbLessons = [] } = useLessons();
+  
+  // Convert database types to UI types
+  const activeLessons = mapLessonsToUi(dbLessons);
+  
+  // Keep only UI state management from context
+  const { currentDate, calendarView, setCalendarView, handleNavigate, handleOpenEditModal, handleOpenAddModal, handleDateSelect, handleUpdateLessonPosition, handleLessonDragStart } = useApp();
+  
   return (
     <Dashboard
       lessons={activeLessons}

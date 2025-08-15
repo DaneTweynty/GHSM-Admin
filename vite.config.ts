@@ -32,7 +32,6 @@ export default defineConfig(({ mode }) => {
                 ui: ['lucide-react', 'react-hot-toast'],
                 // Chat components (largest components)
                 chat: [
-                  './components/EnhancedChat',
                   './components/ImprovedChat',
                   './hooks/useChat',
                   './services/chatService',

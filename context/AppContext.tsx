@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useCallback, useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import type { Student, Instructor, Lesson, Billing, View, CalendarView, Payment, PaymentMethod } from '../types';
 import { BILLING_CYCLE, LESSON_PRICE, EVENT_COLORS, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
@@ -540,14 +541,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleMoveLessonToTrash = useCallback((lessonId: string) => {
-    setLessons(prev => prev.map(l => (l.id === lessonId ? { ...l, status: 'deleted' } : l)));
+    setLessons(prev => prev.map(l => (l.id === lessonId ? { ...l, status: 'cancelled' } : l)));
     handleCloseEditModal();
     pushTx('lesson.delete', 'success', 'Lesson moved to trash', { lessonId });
   }, [handleCloseEditModal, pushTx]);
 
   const checkConflict = useCallback((lessonToPlace: Omit<Lesson, 'id'>, ignoreLessonId?: string): string | null => {
     for (const l of lessons) {
-      if (l.id === ignoreLessonId || l.status === 'deleted') continue;
+      if (l.id === ignoreLessonId || l.status === 'cancelled') continue;
       if (l.date === lessonToPlace.date) {
         const lStart = l.time;
         const lEnd = l.endTime || addMinutes(l.time, 60);
@@ -941,7 +942,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const activeLessons = useMemo(() => lessons.filter(l => l.status === 'scheduled'), [lessons]);
-  const deletedLessons = useMemo(() => lessons.filter(l => l.status === 'deleted'), [lessons]);
+  const deletedLessons = useMemo(() => lessons.filter(l => l.status === 'cancelled'), [lessons]);
 
   const handleLessonDragStart = (e: React.DragEvent, lesson: Lesson) => {
     e.dataTransfer.setData('lessonId', lesson.id);

@@ -70,8 +70,9 @@ export interface Lesson {
   date: string; // ISO String: 'YYYY-MM-DD'
   time: string; // start time HH:MM
   endTime?: string; // optional end time HH:MM for flexible durations
+  duration?: number; // duration in minutes
   notes?: string;
-  status: 'scheduled' | 'deleted';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
 }
 
 export interface BillingItem {
@@ -237,7 +238,7 @@ export interface ChatState {
   searchResults?: ChatMessage[];
   typingUsers: { [conversationId: string]: string[] };
   preferences: ChatPreferences;
-  cache: { [key: string]: any };
+  cache: { [key: string]: unknown };
   analytics: ChatAnalytics;
 }
 
@@ -290,7 +291,7 @@ export interface ChatCommand {
   name: string;
   description: string;
   usage: string;
-  handler: (args: string[], context: any) => void;
+  handler: (args: string[], context: unknown) => void;
   permissions?: string[];
 }
 
@@ -305,6 +306,35 @@ export interface ChatPlugin {
     afterReceive?: (message: ChatMessage) => ChatMessage;
     onConversationOpen?: (conversation: ChatConversation) => void;
   };
+}
+
+// Database-aligned types for Supabase integration
+export interface AttendanceRecord {
+  id: string;
+  lessonId: string;
+  studentId: string;
+  status: 'present' | 'absent' | 'late' | 'excused';
+  markedAt: string;
+  markedBy: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionSummary {
+  id: string;
+  lessonId: string;
+  studentId: string;
+  instructorId: string;
+  summary: string;
+  objectives: string[];
+  achievements: string[];
+  homework: string[];
+  nextLessonPlan: string;
+  studentProgress: Record<string, unknown>;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 declare module './types' {}

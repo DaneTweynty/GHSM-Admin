@@ -287,7 +287,7 @@ export const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
 
     for (const l of allLessons) {
-      if (l.id === id || l.status === 'deleted') continue;
+      if (l.id === id || l.status === 'cancelled') continue;
       if (l.date !== date) continue;
       const s2 = toMinutes(l.time);
       const e2 = toMinutes(l.endTime || addMinutes(l.time, 60));

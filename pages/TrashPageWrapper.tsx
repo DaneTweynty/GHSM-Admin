@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrashPage } from '../components/TrashPage';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 
 export const TrashPageWrapper: React.FC = () => {
   const { deletedLessons, students, instructors, handleRequestAdminAction, handleRestoreLesson } = useApp();

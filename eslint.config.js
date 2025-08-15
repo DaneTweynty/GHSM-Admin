@@ -20,6 +20,27 @@ export default [
       'postcss.config.cjs'
     ]
   },
+  // Configuration for Node.js config files
+  {
+    files: ['*.config.ts', 'vitest.config.ts', 'playwright.config.ts'],
+    languageOptions: {
+      parser: typescriptParser,
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      }
+    },
+    plugins: {
+      '@typescript-eslint': typescript
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }],
+      'no-unused-vars': 'off'
+    }
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

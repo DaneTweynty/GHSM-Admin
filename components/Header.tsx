@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { View } from '../types';
 import { ICONS } from '../constants';
+import { useAuth } from '../hooks/useAuth';
+import { isSupabaseConfigured } from '../utils/supabaseClient';
 
 type FontSize = 'sm' | 'base' | 'lg';
 
@@ -65,6 +67,16 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const { signOut, user } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setIsSettingsOpen(false);
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -174,6 +186,26 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                                     </div>
                                 </div>
                             </li>
+                            
+                            {/* Authentication Section - only show if Supabase is configured and user is logged in */}
+                            {isSupabaseConfigured() && user && (
+                              <>
+                                <li role="separator" className="border-b border-surface-border dark:border-slate-700 my-1"></li>
+                                <li className="px-4 pt-2 pb-1 text-xs font-semibold text-text-tertiary dark:text-slate-500 uppercase tracking-wider">Account</li>
+                                <li>
+                                  <button
+                                    onClick={handleSignOut}
+                                    className="w-full text-left px-4 py-2 text-text-primary dark:text-slate-200 hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors flex items-center space-x-3"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    <span>Sign Out</span>
+                                  </button>
+                                </li>
+                              </>
+                            )}
+                            
                              <li role="separator" className="border-b border-surface-border dark:border-slate-700 my-1"></li>
                              <li className="px-4 pt-2 pb-1 text-xs font-semibold text-text-tertiary dark:text-slate-500 uppercase tracking-wider">Data</li>
                              <li>

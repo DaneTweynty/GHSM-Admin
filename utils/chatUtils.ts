@@ -1,12 +1,12 @@
-import type { ChatMessage, ChatConversation, ChatPreferences } from '../types';
+import type { ChatMessage, ChatConversation } from '../types';
 
 // Encryption utilities (simplified for demo)
-export const encryptMessage = (content: string, key: string = 'demo-key'): string => {
+export const encryptMessage = (content: string, _key: string = 'demo-key'): string => {
   // In a real app, use proper encryption like AES
   return btoa(content);
 };
 
-export const decryptMessage = (encryptedContent: string, key: string = 'demo-key'): string => {
+export const decryptMessage = (encryptedContent: string, _key: string = 'demo-key'): string => {
   try {
     return atob(encryptedContent);
   } catch {
@@ -27,9 +27,14 @@ export const compressMessage = (message: ChatMessage): ChatMessage => {
 };
 
 // Cache management
+interface CacheItem {
+  value: unknown;
+  timestamp: number;
+}
+
 export class ChatCache {
   private static instance: ChatCache;
-  private cache = new Map<string, any>();
+  private cache = new Map<string, CacheItem>();
   private maxSize = 1000;
 
   static getInstance(): ChatCache {
@@ -39,7 +44,7 @@ export class ChatCache {
     return ChatCache.instance;
   }
 
-  set(key: string, value: any): void {
+  set(key: string, value: unknown): void {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) {
@@ -52,7 +57,7 @@ export class ChatCache {
     });
   }
 
-  get(key: string): any {
+  get(key: string): unknown {
     const item = this.cache.get(key);
     if (!item) return null;
     
@@ -121,7 +126,7 @@ export const scheduleMessage = (message: ChatMessage, sendAt: Date): void => {
   if (delay > 0) {
     setTimeout(() => {
       // In a real app, this would send the message through the chat service
-      console.log('Sending scheduled message:', message);
+      // Message will be sent: message
     }, delay);
   }
 };
@@ -256,7 +261,7 @@ export const resizeImage = (file: File, maxWidth: number, maxHeight: number, qua
 };
 
 // Voice transcription (simplified)
-export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+export const transcribeAudio = async (_audioBlob: Blob): Promise<string> => {
   // In a real app, use Web Speech API or external service
   return new Promise((resolve) => {
     setTimeout(() => {

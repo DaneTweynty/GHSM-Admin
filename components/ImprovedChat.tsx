@@ -21,7 +21,7 @@ import {
   MessageSquare,
   X
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 import type { Instructor, ChatMessage, ChatConversation } from '../types';
 
 interface ImprovedChatProps {
@@ -44,7 +44,7 @@ const commonEmojis = [
 ];
 
 export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, currentUser }) => {
-  const { theme } = useApp();
+  const { theme: _theme } = useApp();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [messages, setMessages] = useState<{ [conversationId: string]: ChatMessage[] }>({});
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -316,16 +316,18 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
   // Search messages
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (!query.trim()) {
-      return;
-    }
-
-    // Search functionality - in a full implementation, this could highlight results
-    Object.values(messages).flat().filter(msg =>
-      msg.content.toLowerCase().includes(query.toLowerCase()) ||
-      msg.senderName.toLowerCase().includes(query.toLowerCase())
-    );
   };
+
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter(conversation => {
+    if (!searchQuery.trim()) return true;
+    
+    const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
+    const lastMessage = messages[conversation.id]?.slice(-1)[0];
+    
+    return otherParticipant?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   // Get message status icon
   const getStatusIcon = (status: string) => {
@@ -345,14 +347,14 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
   return (
     <div 
-      className="flex h-full w-full bg-surface-main dark:bg-slate-900 transition-colors duration-200"
+      className="flex w-full h-full bg-surface-main dark:bg-slate-900 transition-colors duration-200 overflow-hidden relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Drag overlay */}
       {dragActive && (
-        <div className="absolute inset-0 bg-brand-primary/20 border-2 border-dashed border-brand-primary flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-brand-primary/20 border-2 border-dashed border-brand-primary flex items-center justify-center z-[50]">
           <div className="text-center">
             <Paperclip className="w-12 h-12 mb-4 mx-auto text-brand-primary" />
             <div className="text-lg font-semibold text-brand-primary">Drop files here to share</div>
@@ -361,7 +363,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       )}
 
       {/* Sidebar */}
-      <div className="w-80 border-r border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800 flex flex-col h-full">
+      <div className="w-80 md:w-80 sm:w-72 border-r border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800 flex flex-col h-full flex-shrink-0">
         {/* Header */}
         <div className="p-4 border-b border-surface-border dark:border-slate-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
@@ -378,6 +380,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
           </div>
           
           {/* Search */}
+          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary dark:text-slate-500" />
             <input
@@ -391,8 +394,8 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto scrollbar-hidden">
-          {conversations.map((conversation) => {
+        <div className="flex-1 overflow-y-auto scrollbar-hidden min-h-0">
+          {filteredConversations.map((conversation) => {
             const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
             const lastMessage = messages[conversation.id]?.slice(-1)[0];
             
@@ -467,11 +470,11 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full bg-surface-main dark:bg-slate-900">
+      <div className="flex-1 flex flex-col h-full bg-surface-main dark:bg-slate-900 min-w-0 overflow-hidden">
         {activeConversation ? (
-          <>
+          <div className="flex flex-col h-full">
             {/* Chat Header */}
-            <div className="p-4 border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 flex items-center justify-between">
+            <div className="p-4 border-b border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="relative">
                   <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center">
@@ -521,7 +524,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
             {/* Reply Banner */}
             {replyingToMessage && (
-              <div className="p-3 border-b border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800">
+              <div className="p-3 border-b border-surface-border dark:border-slate-700 bg-surface-card dark:bg-slate-800 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-1 h-8 bg-brand-primary rounded-full" />
@@ -545,14 +548,14 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 space-y-4 relative z-[1000]">
+            <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 space-y-4 relative z-[1000] min-h-0" style={{ maxHeight: '100%' }}>
               {activeMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'} group relative`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
+                    className={`max-w-[70%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
                       message.senderId === currentUser.id
                         ? 'bg-brand-primary text-text-on-color ml-auto'
                         : 'bg-surface-card dark:bg-slate-700 text-text-primary dark:text-slate-200'
@@ -718,7 +721,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 relative">
+            <div className="p-4 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 relative flex-shrink-0">
               <div className="flex items-end space-x-2">
                 {/* Attachment button */}
                 <button
@@ -777,7 +780,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
                 {/* Emoji Picker */}
                 {showEmojiPicker === 'input' && (
-                  <div className="emoji-picker absolute bottom-full right-0 mb-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg p-3 z-[99999]">
+                  <div className="emoji-picker absolute bottom-full right-0 mb-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg p-3 z-[100000]">
                     <div className="grid grid-cols-6 gap-2">
                       {commonEmojis.map((emoji, index) => (
                         <button
@@ -807,9 +810,9 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                 </button>
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-surface-main dark:bg-slate-900">
+          <div className="flex-1 flex items-center justify-center bg-surface-main dark:bg-slate-900 min-h-0">
             <div className="text-center">
               <MessageSquare className="w-16 h-16 mx-auto mb-4 text-text-tertiary dark:text-slate-500" />
               <h3 className="text-xl font-semibold text-text-primary dark:text-slate-200 mb-2">Welcome to Chat</h3>
@@ -831,7 +834,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100001]">
           <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Chat Settings</h3>
@@ -870,7 +873,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
       {/* Voice Call Modal */}
       {showCallModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100001]">
           <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Voice Call</h3>
@@ -903,7 +906,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
       {/* Video Call Modal */}
       {showVideoCallModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100001]">
           <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Video Call</h3>
@@ -936,7 +939,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
 
       {/* Chat Info Modal */}
       {showInfoModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100001]">
           <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Chat Information</h3>
@@ -995,7 +998,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
         <div 
           className="emoji-picker fixed p-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg"
           style={{ 
-            zIndex: 99999,
+            zIndex: 100002,
             left: `${emojiPickerPosition.x}px`,
             top: `${emojiPickerPosition.y}px`,
             position: 'fixed'

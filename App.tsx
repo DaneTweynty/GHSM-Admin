@@ -1,11 +1,15 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext.supabase';
+import { AuthProvider } from './context/AuthContext';
+import { QueryProvider } from './context/QueryProvider';
 import { AppRouter } from './router/AppRouter';
 import { RouterHeader } from './components/RouterHeader';
 import { TrashZone } from './components/TrashZone';
+import { AuthGuard } from './components/AuthGuard';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useRealtimeSubscriptions } from './hooks/useRealtime';
 
 // Lazy-load modals to keep them out of the main bundle until opened
 const EditLessonModal = lazy(() => import('./components/EditLessonModal').then(m => ({ default: m.EditLessonModal })));
@@ -26,6 +30,9 @@ const AppShell: React.FC = () => {
     isAdminAuthModalOpen, getAdminActionDescription, handleAdminAuthSuccess, handleCloseAdminAuthModal,
     isDragging, handleDropOnTrash,
   } = useApp();
+
+  // Enable realtime subscriptions for Supabase updates
+  useRealtimeSubscriptions();
 
   if (isLoading) {
     return (
@@ -77,11 +84,15 @@ const AppShell: React.FC = () => {
       <RouterHeader
         theme={theme}
         onToggleTheme={handleThemeToggle}
-        setThemeMode={setThemeMode}
+        setThemeMode={(mode: 'auto' | 'light' | 'dark') => {
+          // Map the RouterHeader theme modes to AppContext theme modes
+          const mappedMode = mode === 'auto' ? 'system' : mode;
+          setThemeMode(mappedMode);
+        }}
         fontSize={fontSize}
         onFontSizeChange={handleFontSizeChange}
         onRequestResetData={handleRequestResetData}
-        installPromptEvent={installPromptEvent}
+        installPromptEvent={installPromptEvent || undefined}
         onInstallRequest={handleInstallRequest}
       />
       
@@ -139,11 +150,17 @@ const AppShell: React.FC = () => {
 
 const App: React.FC = () => (
   <ErrorBoundary>
-    <BrowserRouter>
-      <AppProvider>
-        <AppShell />
-      </AppProvider>
-    </BrowserRouter>
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AuthGuard>
+            <AppProvider>
+              <AppShell />
+            </AppProvider>
+          </AuthGuard>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
   </ErrorBoundary>
 );
 

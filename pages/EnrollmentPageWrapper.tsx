@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EnrollmentPage } from '../components/EnrollmentPage';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext.supabase';
 import { ROUTES } from '../constants/routes';
 
 export const EnrollmentPageWrapper: React.FC = () => {

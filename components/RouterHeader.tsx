@@ -4,64 +4,47 @@ import { ICONS } from '../constants';
 import { ROUTES } from '../constants/routes';
 
 type FontSize = 'sm' | 'base' | 'lg';
+type Theme = 'light' | 'dark' | 'comfort' | 'system';
 
 interface RouterHeaderProps {
-  theme: 'light' | 'dark' | 'comfort' | 'system';
-  onToggleTheme: () => void;
-  setThemeMode: (mode: 'light' | 'dark' | 'comfort' | 'system') => void;
+  theme: Theme;
   fontSize: FontSize;
+  onToggleTheme: () => void;
   onFontSizeChange: (size: FontSize) => void;
-  onRequestResetData: () => void;
-  installPromptEvent: Event | null;
-  onInstallRequest: () => void;
+  setThemeMode: (mode: 'auto' | 'light' | 'dark') => void;
+  onInstall?: () => void;
+  canInstall?: boolean;
+  onResetData?: () => void;
+  onRequestResetData?: () => void;
+  installPromptEvent?: Event;
+  onInstallRequest?: () => void;
 }
 
-// Navigation items configuration
-const NAV_ITEMS = [
-  { path: ROUTES.DASHBOARD, label: 'Dashboard', icon: ICONS.calendar },
-  { path: ROUTES.ENROLLMENT, label: 'Enrollment', icon: ICONS.enrollment },
-  { path: ROUTES.TEACHERS, label: 'Teachers', icon: ICONS.teachers },
-  { path: ROUTES.STUDENTS, label: 'Students', icon: ICONS.users },
-  { path: ROUTES.BILLING, label: 'Billing', icon: ICONS.billing },
-  { path: ROUTES.CHAT, label: 'Chat', icon: ICONS.chat },
-  { path: ROUTES.TRASH, label: 'Trash', icon: ICONS.trash },
-];
-
-const NavButton: React.FC<{
-  label: string;
-  icon: React.ReactNode;
+interface NavButtonProps {
   isActive: boolean;
   onClick: () => void;
-  isMobile?: boolean;
-}> = ({ label, icon, isActive, onClick, isMobile = false }) => {
-  const baseClasses = isMobile 
-    ? "flex items-center space-x-3 px-4 py-2.5 text-base w-full transition-all duration-200" 
-    : "flex items-center space-x-2 px-3 py-2 rounded-md font-medium transition-all duration-200";
-  
-  const colorClasses = isActive
-    ? isMobile
-      ? "bg-brand-primary/20 text-brand-primary border-r-2 border-brand-primary"
-      : "bg-brand-primary text-white shadow-md"
-    : isMobile
-      ? "text-text-secondary hover:bg-surface-secondary/60 hover:text-brand-primary"
-      : "text-text-secondary hover:bg-surface-secondary hover:text-brand-primary";
+  icon: React.ReactNode;
+  children?: React.ReactNode;
+  label?: string;
+}
 
-  return (
-    <button
-      onClick={onClick}
-      className={`${baseClasses} ${colorClasses}`}
-      aria-pressed={isActive}
-      type="button"
-    >
-      <span className="w-5 h-5 flex-shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
-  );
-};
+const NavButton: React.FC<NavButtonProps> = ({ isActive, onClick, icon, children, label }) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 ${
+      isActive
+        ? 'bg-brand-primary text-white shadow-lg'
+        : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+    }`}
+  >
+    <div className="text-lg mb-1">{icon}</div>
+    <span className="text-xs font-medium leading-tight">{children || label}</span>
+  </button>
+);
 
-export const RouterHeader: React.FC<RouterHeaderProps> = ({
+const RouterHeaderComponent: React.FC<RouterHeaderProps> = ({
   theme,
-  onToggleTheme,
+  onToggleTheme: _onToggleTheme,
   setThemeMode,
   fontSize,
   onFontSizeChange,
@@ -74,6 +57,49 @@ export const RouterHeader: React.FC<RouterHeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Navigation items configuration
+  const NAV_ITEMS = [
+    { path: ROUTES.DASHBOARD, label: 'Dashboard', icon: ICONS.calendar },
+    { path: ROUTES.ENROLLMENT, label: 'Enrollment', icon: ICONS.enrollment },
+    { path: ROUTES.TEACHERS, label: 'Teachers', icon: ICONS.teachers },
+    { path: ROUTES.STUDENTS, label: 'Students', icon: ICONS.users },
+    { path: ROUTES.BILLING, label: 'Billing', icon: ICONS.billing },
+    { path: ROUTES.CHAT, label: 'Chat', icon: ICONS.chat },
+    { path: ROUTES.TRASH, label: 'Trash', icon: ICONS.trash },
+  ];
+
+  const MobileNavButton: React.FC<{
+    label: string;
+    icon: React.ReactNode;
+    isActive: boolean;
+    onClick: () => void;
+    isMobile?: boolean;
+  }> = ({ label, icon, isActive, onClick, isMobile = false }) => {
+    const baseClasses = isMobile 
+      ? "flex items-center space-x-3 px-4 py-2.5 text-base w-full transition-all duration-200" 
+      : "flex items-center space-x-2 px-3 py-2 rounded-md font-medium transition-all duration-200";
+    
+    const colorClasses = isActive
+      ? isMobile
+        ? "bg-brand-primary/20 text-brand-primary border-r-2 border-brand-primary"
+        : "bg-brand-primary text-white shadow-md"
+      : isMobile
+        ? "text-text-secondary hover:bg-surface-secondary/60 hover:text-brand-primary"
+        : "text-text-secondary hover:bg-surface-secondary hover:text-brand-primary";
+
+    return (
+      <button
+        onClick={onClick}
+        className={`${baseClasses} ${colorClasses}`}
+        aria-pressed={isActive}
+        type="button"
+      >
+        <span className="w-5 h-5 flex-shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </button>
+    );
+  };
 
   // Get current path to determine active navigation item
   const getCurrentPath = () => {
@@ -164,7 +190,16 @@ export const RouterHeader: React.FC<RouterHeaderProps> = ({
                       {(['light', 'dark', 'comfort', 'system'] as const).map((mode) => (
                         <button
                           key={mode}
-                          onClick={() => setThemeMode(mode)}
+                          onClick={() => {
+                            if (mode === 'system') {
+                              setThemeMode('auto');
+                            } else if (mode === 'comfort') {
+                              // Handle comfort mode differently or map to light/dark
+                              setThemeMode('light');
+                            } else {
+                              setThemeMode(mode);
+                            }
+                          }}
                           className={`px-3 py-1.5 text-xs rounded-md transition-colors capitalize ${
                             theme === mode
                               ? 'bg-brand-primary text-white'
@@ -242,7 +277,7 @@ export const RouterHeader: React.FC<RouterHeaderProps> = ({
           <div className="lg:hidden border-t border-border-light dark:border-slate-700 py-4">
             <nav className="space-y-1">
               {NAV_ITEMS.map((item) => (
-                <NavButton
+                <MobileNavButton
                   key={item.path}
                   label={item.label}
                   icon={item.icon}
@@ -258,3 +293,5 @@ export const RouterHeader: React.FC<RouterHeaderProps> = ({
     </header>
   );
 };
+
+export { RouterHeaderComponent as RouterHeader };

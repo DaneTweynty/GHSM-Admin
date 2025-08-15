@@ -6,6 +6,7 @@ import type { Lesson, Student, Instructor } from '../types';
 import { DAYS_OF_WEEK_SHORT, toYYYYMMDD } from '../constants';
 import { getEnhancedTextColor } from '../utils/color';
 import { useThemeDetection } from '../hooks/useThemeDetection';
+import { useSessionSummaryByLesson } from '../hooks/useSupabase';
 
 interface MonthViewProps {
   lessons: Lesson[];
@@ -37,6 +38,21 @@ export const MonthView: React.FC<MonthViewProps> = ({
   const currentTheme = useThemeDetection(); // Add reactive theme detection
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const instructorMap = useMemo(() => new Map(instructors.map(i => [i.id, i])), [instructors]);
+
+  // Component to check if a lesson has a session summary
+  const SessionSummaryIndicator: React.FC<{ lessonId: string }> = ({ lessonId }) => {
+    const { data: sessionSummary } = useSessionSummaryByLesson(lessonId);
+    
+    if (!sessionSummary) return null;
+    
+    return (
+      <div 
+        className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-white shadow-sm"
+        title="Session summary completed"
+        aria-label="This lesson has a completed session summary"
+      />
+    );
+  };
 
   const lessonsByDate = useMemo(() => {
     const map = new Map<string, Lesson[]>();
@@ -147,6 +163,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
                               draggable="true"
                               onDragStart={(e) => onLessonDragStart(e, lesson)}
                           >
+                              {/* Session Summary Indicator */}
+                              <SessionSummaryIndicator lessonId={lesson.id} />
+                              
                               <div className="flex justify-between items-start">
                                  <div className="font-bold truncate">{lesson.time}</div>
                                  {hasNote && <NoteIcon />}
