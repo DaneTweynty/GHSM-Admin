@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { control } from './ui';
 import { formatPhilippinePhone, validatePhilippinePhone } from '../services/philippineAddressService';
 
 interface GuardianDetails {
   fullName?: string;
   relationship?: string;
+  occupation?: string;
   phone?: string;
   email?: string;
   facebook?: string;
@@ -20,6 +21,7 @@ interface GuardianInputProps {
   errors?: {
     name?: string;
     relationship?: string;
+    occupation?: string;
     phone?: string;
     email?: string;
   };
@@ -54,10 +56,22 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
 }) => {
   const [fullName, setFullName] = useState(guardian.fullName || '');
   const [relationship, setRelationship] = useState(guardian.relationship || '');
+  const [occupation, setOccupation] = useState(guardian.occupation || '');
   const [phone, setPhone] = useState(guardian.phone || '');
   const [email, setEmail] = useState(guardian.email || '');
   const [facebook, setFacebook] = useState(guardian.facebook || '');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  // Sync internal state with props when guardian prop changes
+  useEffect(() => {
+    setFullName(guardian.fullName || '');
+    setRelationship(guardian.relationship || '');
+    setOccupation(guardian.occupation || '');
+    setPhone(guardian.phone || '');
+    setEmail(guardian.email || '');
+    setFacebook(guardian.facebook || '');
+    setPhoneError(null);
+  }, [guardian]);
 
   const inputClasses = control;
   const labelClasses = "block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1";
@@ -70,6 +84,11 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
   const handleRelationshipChange = (value: string) => {
     setRelationship(value);
     updateGuardian({ relationship: value });
+  };
+
+  const handleOccupationChange = (value: string) => {
+    setOccupation(value);
+    updateGuardian({ occupation: value });
   };
 
   const handlePhoneChange = (value: string) => {
@@ -102,6 +121,7 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
     const updatedGuardian = {
       fullName,
       relationship,
+      occupation,
       phone,
       email,
       facebook,
@@ -134,7 +154,8 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Row 1: Full Name, Relationship, Occupation */}
         {/* Full Name */}
         <div>
           <label htmlFor={`${guardianType}-fullName`} className={labelClasses}>
@@ -178,10 +199,31 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
           )}
         </div>
 
+        {/* Occupation */}
+        <div>
+          <label htmlFor={`${guardianType}-occupation`} className={labelClasses}>
+            Occupation (Optional)
+          </label>
+          <input
+            type="text"
+            id={`${guardianType}-occupation`}
+            value={occupation}
+            onChange={(e) => handleOccupationChange(e.target.value)}
+            onBlur={(e) => onBlur?.(`${guardianType}GuardianOccupation`, e.target.value)}
+            className={inputClasses}
+            placeholder="e.g., Teacher, Engineer"
+            disabled={disabled}
+          />
+          {errors.occupation && (
+            <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.occupation}</div>
+          )}
+        </div>
+
+        {/* Row 2: Phone, Email */}
         {/* Phone Number */}
         <div>
           <label htmlFor={`${guardianType}-phone`} className={labelClasses}>
-            Phone Number {guardianType === 'primary' ? '(Optional)' : '(Optional)'}
+            Phone Number (Optional)
           </label>
           <input
             type="tel"
@@ -197,7 +239,7 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
             <p className="text-xs text-status-red mt-1">{phoneError}</p>
           )}
           <p className="text-xs text-text-secondary dark:text-slate-400 mt-1">
-            Philippine format: 09XX XXX XXXX or +63 9XX XXX XXXX
+            Philippine format: 09XX XXX XXXX
           </p>
         </div>
 
@@ -217,8 +259,8 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
           />
         </div>
 
-        {/* Facebook */}
-        <div className="md:col-span-2">
+        {/* Facebook - spans remaining column(s) */}
+        <div>
           <label htmlFor={`${guardianType}-facebook`} className={labelClasses}>
             Facebook Profile (Optional)
           </label>
@@ -228,7 +270,7 @@ export const GuardianInput: React.FC<GuardianInputProps> = ({
             value={facebook}
             onChange={(e) => handleFacebookChange(e.target.value)}
             className={inputClasses}
-            placeholder="Facebook name or https://facebook.com/..."
+            placeholder="Facebook name or URL"
             disabled={disabled}
           />
         </div>
@@ -283,7 +325,7 @@ export const GuardianManagement: React.FC<GuardianManagementProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-8 pb-4">
       {isMinor && (
         <div className="text-sm text-status-yellow bg-status-yellow-light dark:bg-status-yellow/20 px-3 py-2 rounded-md">
           <p className="font-medium">Minor Student Detected</p>
@@ -308,16 +350,18 @@ export const GuardianManagement: React.FC<GuardianManagementProps> = ({
 
       {/* Secondary Guardian */}
       {showSecondaryGuardian ? (
-        <GuardianInput
-          guardianType="secondary"
-          guardian={secondaryGuardian}
-          onChange={onSecondaryGuardianChange}
-          onRemove={handleRemoveSecondaryGuardian}
-          disabled={disabled}
-          showRemoveButton={true}
-        />
+        <div className="mb-6 pb-4">
+          <GuardianInput
+            guardianType="secondary"
+            guardian={secondaryGuardian}
+            onChange={onSecondaryGuardianChange}
+            onRemove={handleRemoveSecondaryGuardian}
+            disabled={disabled}
+            showRemoveButton={true}
+          />
+        </div>
       ) : (
-        <div className="text-center">
+        <div className="text-center mb-6 pb-4">
           <button
             type="button"
             onClick={handleAddSecondaryGuardian}

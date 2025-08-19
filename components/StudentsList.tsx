@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { control } from './ui';
 import type { Student, Instructor, Lesson, Billing } from '../types';
 import { Card } from './Card';
 import { ICONS, BILLING_CYCLE } from '../constants';
 import { StudentDetailView } from './StudentDetailView';
 import StagedBulkUploadModal from './StagedBulkUploadModal';
+import { SearchBar } from './SearchBar';
+import { PaginationControls } from './PaginationControls';
 
 interface StudentsListProps {
   students: Student[];
@@ -27,10 +28,31 @@ const getInitials = (name: string) => {
 
 const Avatar: React.FC<{ student: Student }> = ({ student }) => {
     if (student.profilePictureUrl) {
-        return <img src={student.profilePictureUrl} alt={student.name} className="h-9 w-9 rounded-full object-cover shrink-0" />;
+        return (
+            <img 
+                src={student.profilePictureUrl} 
+                alt={student.name} 
+                className="h-9 w-9 rounded-full object-cover shrink-0 border border-surface-border dark:border-slate-600" 
+                onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    const initials = getInitials(student.name);
+                    const colorIndex = (student.name.charCodeAt(0) || 0) % 6;
+                    const colors = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200'];
+                    const textColors = ['text-red-800', 'text-blue-800', 'text-green-800', 'text-yellow-800', 'text-purple-800', 'text-pink-800'];
+                    
+                    // Replace img with div
+                    const div = document.createElement('div');
+                    div.className = `h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${colors[colorIndex]} ${textColors[colorIndex]}`;
+                    div.innerHTML = `<span class="text-xs font-bold">${initials}</span>`;
+                    target.parentNode?.replaceChild(div, target);
+                }}
+            />
+        );
     }
+    
+    // Fallback initials avatar
     const initials = getInitials(student.name);
-    // Simple hash to get a color - not a real instructor color
     const colorIndex = (student.name.charCodeAt(0) || 0) % 6;
     const colors = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200'];
     const textColors = ['text-red-800', 'text-blue-800', 'text-green-800', 'text-yellow-800', 'text-purple-800', 'text-pink-800'];
@@ -100,11 +122,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  const goToPrevious = () => {
+  const _goToPrevious = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
   };
 
-  const goToNext = () => {
+  const _goToNext = () => {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
 
@@ -115,7 +137,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           {/* Header with title and action buttons */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Student Roster</h2>
+              <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Student List</h2>
               <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
                 Manage student enrollments and track progress
                 {filteredStudents.length > 0 && (
@@ -153,122 +175,26 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           </div>
 
           {/* Search section */}
-          <div className="mb-4">
-            <label htmlFor="student-search" className="sr-only">Search Students</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-text-tertiary dark:text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                name="student-search"
-                id="student-search"
-                className={`${control} pl-10 sm:text-sm`}
-                placeholder="Search by name, instrument, or student ID..."
-                value={searchTerm}
-                onChange={e => handleSearchChange(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => handleSearchChange('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-tertiary hover:text-text-primary dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Pagination Controls and Page Size Selector */}
-          {filteredStudents.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-              <div className="flex items-center space-x-2">
-                <label htmlFor="page-size" className="text-sm text-text-secondary dark:text-slate-400">
-                  Show:
-                </label>
-                <select
-                  id="page-size"
-                  value={studentsPerPage}
-                  onChange={(e) => {
-                    setStudentsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100"
-                >
-                  <option value={5}>5 students</option>
-                  <option value={10}>10 students</option>
-                  <option value={25}>25 students</option>
-                  <option value={50}>50 students</option>
-                  <option value={100}>100 students</option>
-                </select>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={goToPrevious}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 7) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNumber = totalPages - 6 + i;
-                      } else {
-                        pageNumber = currentPage - 3 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => goToPage(pageNumber)}
-                          className={`px-3 py-1 text-sm border rounded transition-colors ${
-                            currentPage === pageNumber
-                              ? 'bg-brand-primary text-white border-brand-primary'
-                              : 'border-surface-border dark:border-slate-600 bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 hover:bg-surface-hover dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={goToNext}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border border-surface-border dark:border-slate-600 rounded bg-surface-input dark:bg-slate-800 text-text-primary dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover dark:hover:bg-slate-700 transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <SearchBar
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by name, instrument, or student ID..."
+            showResultsCount={true}
+            totalResults={students.length}
+            filteredResults={filteredStudents.length}
+            itemName="students"
+          />
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-hidden shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] transition-shadow duration-200 border border-surface-border dark:border-slate-600 rounded-lg bg-surface-card dark:bg-slate-800">
           <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700 md:table">
             <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Name</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Instrument</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Instructor</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Session Progress</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Name</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Instrument</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Instructor</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">Session Progress</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-text-secondary dark:text-slate-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -349,8 +275,8 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
                   return (
                     <React.Fragment key={student.id}>
-                      <tr className="block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors">
-                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell">
+                      <tr className="block md:table-row hover:bg-surface-hover dark:hover:bg-slate-700/50 transition-colors md:shadow-sm md:hover:shadow-md md:border md:border-surface-border dark:md:border-slate-600 md:mb-2 md:rounded-lg md:bg-surface-card dark:md:bg-slate-800">
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell md:rounded-l-lg">
                           <button onClick={() => handleToggleDetails(student.id)} className="flex items-center w-full text-left group">
                              <div className="relative mr-4">
                                 <Avatar student={student} />
@@ -361,16 +287,16 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                 )}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-text-primary dark:text-slate-100 group-hover:text-brand-primary dark:group-hover:text-brand-primary transition-colors">{student.name}</div>
-                              <div className="text-xs text-text-tertiary dark:text-slate-500">ID: {student.studentIdNumber}</div>
+                              <div className="text-sm font-semibold text-text-primary dark:text-slate-100 group-hover:text-brand-primary dark:group-hover:text-brand-primary transition-colors">{student.name}</div>
+                              <div className="text-xs font-medium text-text-tertiary dark:text-slate-500">ID: {student.studentIdNumber}</div>
                             </div>
                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-auto text-text-tertiary dark:text-slate-500 transition-transform transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                           </button>
                         </td>
-                        <td data-label="Instrument" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
-                          <div className="text-sm text-text-secondary dark:text-slate-300">{student.instrument}</div>
+                        <td data-label="Instrument" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left">
+                          <div className="text-sm font-medium text-text-secondary dark:text-slate-300">{student.instrument}</div>
                         </td>
-                        <td data-label="Instructor" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left text-text-primary dark:text-slate-100">
+                        <td data-label="Instructor" className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap block md:table-cell text-right md:text-left before:content-[attr(data-label)':'] before:font-bold before:text-text-secondary before:dark:text-slate-400 before:mr-2 md:before:content-none before:float-left">
                           {instructor ? (
                             <div className="flex items-center justify-end md:justify-start">
                               <span 
@@ -378,7 +304,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                 style={{ backgroundColor: instructor.color }}
                                 title={`Color code for ${instructor.name}`}
                               ></span>
-                              <div className="text-sm text-text-secondary dark:text-slate-300">{instructor.name}</div>
+                              <div className="text-sm font-medium text-text-secondary dark:text-slate-300">{instructor.name}</div>
                             </div>
                           ) : (
                             <div className="text-sm text-text-tertiary dark:text-slate-500">Unassigned</div>
@@ -400,7 +326,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                                   {unpaidSessions}
                                 </div>
                                 <div className="w-full">
-                                    <div className="w-full bg-surface-input dark:bg-slate-700 rounded-full h-2.5" title={`${sessionsForProgressBar} out of ${BILLING_CYCLE} sessions in this cycle`}>
+                                    <div className="w-full bg-gray-200 dark:bg-slate-700 comfort:bg-stone-200 rounded-full h-2.5 border border-gray-300 dark:border-slate-600 comfort:border-stone-300" title={`${sessionsForProgressBar} out of ${BILLING_CYCLE} sessions in this cycle`}>
                                         <div 
                                             className={`h-2.5 rounded-full transition-all duration-500 ${unpaidSessions >= BILLING_CYCLE ? 'bg-status-yellow' : 'bg-brand-primary'}`}
                                             style={{ width: `${progressPercentage}%` }}
@@ -458,6 +384,26 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls at the bottom */}
+        {filteredStudents.length > 0 && (
+          <div className="px-4 py-4 sm:px-6 border-t border-surface-border dark:border-slate-700">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={studentsPerPage}
+              totalItems={filteredStudents.length}
+              itemName="students"
+              onPageChange={goToPage}
+              onItemsPerPageChange={(newSize) => {
+                setStudentsPerPage(newSize);
+                setCurrentPage(1);
+              }}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+            />
+          </div>
+        )}
 
         {/* Staged Bulk Upload Modal */}
         {showBulkUpload && (

@@ -10,7 +10,7 @@ type CardProps = {
 export const Card: React.FC<CardProps> = ({ children, className = '', ...rest }) => {
   return (
     <div 
-  className={`bg-surface-card dark:bg-slate-800 border border-surface-border dark:border-slate-700 rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,0.06),_0_1px_3px_rgba(16,24,40,0.10)] dark:shadow-none ${className}`}
+      className={`bg-surface-card dark:bg-slate-800 comfort:bg-comfort-card border border-surface-border dark:border-slate-700 comfort:border-comfort-border rounded-lg overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.1),_0_1px_2px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_6px_rgba(0,0,0,0.07),_0_2px_4px_rgba(0,0,0,0.06)] transition-shadow duration-200 dark:shadow-none ${className}`}
       {...rest}
     >
       {children}

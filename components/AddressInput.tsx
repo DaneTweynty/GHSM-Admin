@@ -63,6 +63,16 @@ export const AddressInput: React.FC<AddressInputProps> = ({
     onChange(addressData);
   }, [selectedCountry, selectedProvince, selectedCity, selectedBarangay, addressLine1, addressLine2, onChange]);
 
+  // Sync internal state with props when address prop changes
+  useEffect(() => {
+    setSelectedCountry(address.country || 'Philippines');
+    setSelectedProvince(address.province || '');
+    setSelectedCity(address.city || '');
+    setSelectedBarangay(address.barangay || '');
+    setAddressLine1(address.addressLine1 || '');
+    setAddressLine2(address.addressLine2 || '');
+  }, [address]);
+
   // Load provinces on component mount
   useEffect(() => {
     const loadProvinces = async () => {
@@ -112,14 +122,18 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   // Load barangays when city changes  
   useEffect(() => {
     const loadBarangays = async () => {
+      // Loading barangays for selected city
       if (selectedCity && cities.length > 0) {
         try {
           setLoadingBarangays(true);
           const cityData = cities.find(c => c.name === selectedCity);
+          // Found city data, loading barangays
           if (cityData) {
             const barangaysData = await PhilippineAddressService.getBarangaysByCity(cityData.code);
+            // Loaded barangays successfully
             setBarangays(barangaysData);
           } else {
+            // City data not found, clearing barangays
             setBarangays([]);
           }
         } catch (error) {
@@ -129,6 +143,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           setLoadingBarangays(false);
         }
       } else {
+        // Clearing barangays - no city selected or cities not loaded
         setBarangays([]);
         setLoadingBarangays(false);
       }
@@ -211,7 +226,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       {/* Country Selection */}
       <div>
         <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
-          Country <span className="text-status-red">*</span>
+          Country
         </label>
         <ThemedSelect
           value={selectedCountry}
@@ -230,7 +245,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       {/* Province Selection */}
       <div>
         <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
-          Province <span className="text-status-red">*</span>
+          Province
         </label>
         <ThemedSelect
           value={selectedProvince}
@@ -250,14 +265,14 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.province}</div>
         )}
         {loadingProvinces && (
-          <div className="text-xs text-gray-500 mt-1">Loading provinces...</div>
+          <div className="text-xs text-text-tertiary dark:text-slate-500 mt-1">Loading provinces...</div>
         )}
       </div>
 
       {/* City Selection */}
       <div>
         <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
-          City/Municipality <span className="text-status-red">*</span>
+          City/Municipality
         </label>
         <ThemedSelect
           value={selectedCity}
@@ -282,14 +297,14 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.city}</div>
         )}
         {loadingCities && (
-          <div className="text-xs text-gray-500 mt-1">Loading cities...</div>
+          <div className="text-xs text-text-tertiary dark:text-slate-500 mt-1">Loading cities...</div>
         )}
       </div>
 
       {/* Barangay Selection */}
       <div>
         <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
-          Barangay <span className="text-status-red">*</span>
+          Barangay
         </label>
         <ThemedSelect
           value={selectedBarangay}
@@ -314,14 +329,14 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           <div className="text-xs text-status-red dark:text-red-400 mt-1">{errors.barangay}</div>
         )}
         {loadingBarangays && (
-          <div className="text-xs text-gray-500 mt-1">Loading barangays...</div>
+          <div className="text-xs text-text-tertiary dark:text-slate-500 mt-1">Loading barangays...</div>
         )}
       </div>
 
       {/* Address Line 1 */}
       <div>
         <label className="block text-sm font-medium text-text-secondary dark:text-slate-400 mb-1">
-          Address Line 1 (Street, Building, etc.) <span className="text-status-red">*</span>
+          Address Line 1 (Street, Building, etc.)
         </label>
         <input
           type="text"
@@ -368,12 +383,12 @@ export const AddressInput: React.FC<AddressInputProps> = ({
                 {(addressLine1 || addressLine2) && (
                   <div className="text-sm">
                     {addressLine1 && (
-                      <div className="font-medium text-gray-900 dark:text-gray-100 leading-relaxed">
+                      <div className="font-medium text-text-primary dark:text-slate-100 leading-relaxed">
                         {addressLine1}
                       </div>
                     )}
                     {addressLine2 && (
-                      <div className="text-text-secondary dark:text-gray-300 leading-relaxed">
+                      <div className="text-text-secondary dark:text-slate-300 leading-relaxed">
                         {addressLine2}
                       </div>
                     )}
@@ -384,7 +399,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
                 {(selectedBarangay || selectedCity || selectedProvince) && (
                   <div className="flex flex-wrap items-center gap-2">
                     {selectedBarangay && (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-brand-primary-light text-brand-primary dark:bg-brand-primary/20 dark:text-brand-secondary">
                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                         </svg>
@@ -392,7 +407,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
                       </span>
                     )}
                     {selectedCity && (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-status-green/15 text-status-green dark:bg-status-green/20 dark:text-status-green">
                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 2a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clipRule="evenodd" />
                         </svg>
@@ -411,7 +426,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
                 )}
                 
                 {/* Country Section */}
-                <div className="text-xs text-gray-500 dark:text-gray-500 pt-1 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-text-tertiary dark:text-slate-500 pt-1 border-t border-surface-border dark:border-slate-700">
                   <span className="inline-flex items-center">
                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />

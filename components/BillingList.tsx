@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import ThemedSelect from './ThemedSelect';
-import { control, buttonPrimary, buttonSecondary, card } from './ui';
-import type { Billing, Student, PaymentMethod, BillingItem, Payment } from '../types';
+import { control, buttonPrimary } from './ui';
+import type { Billing, Student, PaymentMethod, BillingItem } from '../types';
 import { Card } from './Card';
 import { ICONS } from '../constants';
 import { useApp } from '../context/AppContext';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
+import { SearchBar } from './SearchBar';
+import { PaginationControls } from './PaginationControls';
+import { Receipt, History } from 'lucide-react';
 
 interface BillingListProps {
   billings: Billing[];
@@ -34,63 +37,107 @@ const Avatar: React.FC<{ student?: Student }> = ({ student }) => {
     }
     const initials = getInitials(student.name);
     const colorIndex = (student.name.charCodeAt(0) || 0) % 6;
-    const colors = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200'];
-    const textColors = ['text-red-800', 'text-blue-800', 'text-green-800', 'text-yellow-800', 'text-purple-800', 'text-pink-800'];
+    // Use design system colors for avatar consistency
+    const avatarColors = [
+        { bg: 'bg-red-100', text: 'text-red-700', dark: 'dark:bg-red-900/30 dark:text-red-200' },
+        { bg: 'bg-blue-100', text: 'text-blue-700', dark: 'dark:bg-blue-900/30 dark:text-blue-200' },
+        { bg: 'bg-green-100', text: 'text-green-700', dark: 'dark:bg-green-900/30 dark:text-green-200' },
+        { bg: 'bg-yellow-100', text: 'text-yellow-700', dark: 'dark:bg-yellow-900/30 dark:text-yellow-200' },
+        { bg: 'bg-purple-100', text: 'text-purple-700', dark: 'dark:bg-purple-900/30 dark:text-purple-200' },
+        { bg: 'bg-pink-100', text: 'text-pink-700', dark: 'dark:bg-pink-900/30 dark:text-pink-200' }
+    ];
+    const colorSet = avatarColors[colorIndex];
     return (
-        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${colors[colorIndex]} ${textColors[colorIndex]}`}>
+        <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${colorSet.bg} ${colorSet.text} ${colorSet.dark}`}>
             <span className="text-xs font-bold">{initials}</span>
         </div>
     );
 };
 
-export const BillingList: React.FC<BillingListProps> = ({ billings, students, onMarkAsPaid, onRecordPayment }) => {
+export const BillingList: React.FC<BillingListProps> = ({ billings, students, onMarkAsPaid: _onMarkAsPaid, onRecordPayment }) => {
   const { handleUpdateBilling, handleRecordPayment } = useApp();
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const [breakdownBill, setBreakdownBill] = useState<Billing | null>(null);
 
   // Debug logging for billing status changes
   React.useEffect(() => {
-    const unpaidCount = billings.filter(b => b.status === 'unpaid').length;
-    const paidCount = billings.filter(b => b.status === 'paid').length;
-    console.log('BillingList re-render - Unpaid:', unpaidCount, 'Paid:', paidCount);
+    const _unpaidCount = billings.filter(b => b.status === 'unpaid').length;
+    const _paidCount = billings.filter(b => b.status === 'paid').length;
+    // BillingList re-render tracking - Unpaid: ${_unpaidCount}, Paid: ${_paidCount}
     billings.forEach(b => {
       if (b.status) {
-        console.log(`Bill ${b.id}: status=${b.status}, amount=${b.amount}, paidAmount=${b.paidAmount}`);
+        // Bill tracking: ${b.id} status=${b.status}, amount=${b.amount}, paidAmount=${b.paidAmount}
       }
     });
   }, [billings]);
 
   const formatPHP = (amount: number) => `PHP ${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // Pending invoices pagination (unpaid only)
-  const [unpaidPage, setUnpaidPage] = React.useState(1);
-  const [query, setQuery] = React.useState('');
-  // Payment history pagination (paid only)
-  const [paidPage, setPaidPage] = React.useState(1);
-  const [paidQuery, setPaidQuery] = React.useState('');
-  const pageSize = 10;
-  
-  const unpaidBase = billings
-    .filter(b => b.status === 'unpaid')
-    .sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime());
-  
-  const q = query.trim().toLowerCase();
-  const unpaidBillsAll = q
-    ? unpaidBase.filter(b => (b.studentName || '').toLowerCase().includes(q))
-    : unpaidBase;
-  const unpaidTotalPages = Math.max(1, Math.ceil(unpaidBillsAll.length / pageSize));
-  const unpaidBills = unpaidBillsAll.slice((unpaidPage - 1) * pageSize, unpaidPage * pageSize);
+  // Enhanced pagination and search state management
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
 
-  // Paid invoices base + search + pagination
-  const paidBase = billings
-    .filter(b => b.status === 'paid')
-    .sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime());
-  const pq = paidQuery.trim().toLowerCase();
-  const paidBillsAll = pq
-    ? paidBase.filter(b => (b.studentName || '').toLowerCase().includes(pq))
-    : paidBase;
-  const paidTotalPages = Math.max(1, Math.ceil(paidBillsAll.length / pageSize));
-  const paidBills = paidBillsAll.slice((paidPage - 1) * pageSize, paidPage * pageSize);
+  // Reset page when search changes
+  const handleSearchChange = useCallback((newSearchTerm: string) => {
+    setSearchTerm(newSearchTerm);
+    setCurrentPage(1);
+  }, []);
+
+  // Filter and pagination logic for pending invoices
+  const unpaidBase = useMemo(() => 
+    billings
+      .filter(b => b.status === 'unpaid')
+      .sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime())
+  , [billings]);
+  
+  const filteredUnpaid = useMemo(() => {
+    if (!searchTerm.trim()) return unpaidBase;
+    const term = searchTerm.trim().toLowerCase();
+    return unpaidBase.filter(b => 
+      (b.studentName || '').toLowerCase().includes(term) ||
+      b.id.toLowerCase().includes(term)
+    );
+  }, [unpaidBase, searchTerm]);
+
+  // Filter and pagination logic for paid invoices
+  const paidBase = useMemo(() =>
+    billings
+      .filter(b => b.status === 'paid')
+      .sort((a,b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime())
+  , [billings]);
+
+  const filteredPaid = useMemo(() => {
+    if (!searchTerm.trim()) return paidBase;
+    const term = searchTerm.trim().toLowerCase();
+    return paidBase.filter(b => 
+      (b.studentName || '').toLowerCase().includes(term) ||
+      b.id.toLowerCase().includes(term)
+    );
+  }, [paidBase, searchTerm]);
+
+  // Current data based on active tab
+  const currentData = activeTab === 'pending' ? filteredUnpaid : filteredPaid;
+  const totalPages = Math.ceil(currentData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = currentData.slice(startIndex, endIndex);
+
+  // Navigation helpers
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }, [totalPages]);
+
+  const handleTabChange = useCallback((tab: 'pending' | 'history') => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  }, []);
+
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  }, []);
 
   // Edit Invoice Modal state
   const [editingBill, setEditingBill] = React.useState<Billing | null>(null);
@@ -187,7 +234,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
     closeEditModal();
   };
 
-  const generateInvoice = (bill: Billing) => {
+  const _generateInvoice = (bill: Billing) => {
     const student = studentMap.get(bill.studentId);
     const items: BillingItem[] = bill.items && bill.items.length > 0
       ? bill.items
@@ -335,9 +382,9 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
         try {
           const blob = new Blob([html], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
-          const w = window.open(url, '_blank');
+          const _w = window.open(url, '_blank');
           setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        } catch (e) {
+        } catch {
           const w = window.open('', '_blank');
           if (!w) return;
           w.document.open();
@@ -393,7 +440,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
             onClick={() => setPreviewBill(bill)}
             title="Preview invoice"
             aria-label="Preview invoice"
-            className="group inline-flex items-center space-x-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30 dark:hover:bg-blue-500/25 px-3 py-1 rounded-md transition-colors"
+            className="group inline-flex items-center space-x-2 bg-brand-primary-light text-brand-primary border border-brand-primary/30 hover:bg-brand-primary/10 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:ring-offset-2 dark:bg-brand-primary/15 dark:text-brand-secondary dark:border-brand-primary/30 dark:hover:bg-brand-primary/25 px-3 py-1 rounded-md transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
             <span className="hidden sm:inline font-semibold">Preview</span>
@@ -427,7 +474,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
  };
 
   // History row for paid bills
-  const renderHistoryRow = (bill: Billing) => {
+  const _renderHistoryRow = (bill: Billing) => {
     const student = studentMap.get(bill.studentId);
     const effectiveAmount = bill.items && bill.items.length > 0 ? bill.items.reduce((s, it) => s + it.quantity * it.unitAmount, 0) : bill.amount;
     const paidBy = summarizePayment(bill);
@@ -498,127 +545,143 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
   };
 
   return (
-    <div className="space-y-8">
-      <Card>
-        <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Pending Invoices</h2>
-          <div className="w-full sm:w-72">
-            <label className="block">
-              <span className="sr-only">Search student</span>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setUnpaidPage(1); }}
-                placeholder="Search student..."
-                className={`${control} text-sm`}
-                aria-label="Search pending invoices by student name"
+    <div className="max-w-7xl mx-auto"> {/* Consistent container width */}
+      <div className="space-y-6">
+        
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 bg-surface-header dark:bg-slate-700/50 p-1 rounded-lg border border-surface-border dark:border-slate-600">
+          <button
+            onClick={() => handleTabChange('pending')}
+            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'pending'
+                ? 'bg-brand-primary-light dark:bg-brand-primary/20 text-brand-primary dark:text-brand-primary border border-brand-primary/30 shadow-sm'
+                : 'text-text-secondary dark:text-slate-400 hover:text-text-primary dark:hover:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-600/50'
+            }`}
+          >
+            <Receipt className="h-4 w-4" />
+            <span>Pending Invoices ({filteredUnpaid.length})</span>
+          </button>
+          <button
+            onClick={() => handleTabChange('history')}
+            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'history'
+                ? 'bg-brand-primary-light dark:bg-brand-primary/20 text-brand-primary dark:text-brand-primary border border-brand-primary/30 shadow-sm'
+                : 'text-text-secondary dark:text-slate-400 hover:text-text-primary dark:hover:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-600/50'
+            }`}
+          >
+            <History className="h-4 w-4" />
+            <span>Payment History ({filteredPaid.length})</span>
+          </button>
+        </div>
+
+        <Card>
+          <div className="p-4 sm:p-6">
+            {/* Header with title and status info */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">
+                  {activeTab === 'pending' ? 'Pending Invoices' : 'Payment History'}
+                </h2>
+                <p className="text-sm text-text-secondary dark:text-slate-400 mt-1">
+                  {activeTab === 'pending' 
+                    ? 'Outstanding invoices awaiting payment'
+                    : 'Completed payments and transaction history'
+                  }
+                  {currentData.length > 0 && (
+                    <span>
+                      {' '}({startIndex + 1}-{Math.min(endIndex, currentData.length)} of {currentData.length} invoice{currentData.length !== 1 ? 's' : ''})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Search section */}
+            <SearchBar
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Search by student name or invoice ID..."
+              showResultsCount={true}
+              totalResults={activeTab === 'pending' ? unpaidBase.length : paidBase.length}
+              filteredResults={currentData.length}
+              itemName="invoices"
+              className="mb-6"
+            />
+          </div>
+          
+          <div className="overflow-x-auto scrollbar-hidden">
+            <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
+              <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Student</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Date Issued</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Status</th>
+                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
+                {paginatedData.length > 0 ? (
+                  paginatedData.map(renderBillRow)
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <svg className="h-12 w-12 text-text-tertiary dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {searchTerm ? (
+                          <div className="text-center">
+                            <p className="text-text-primary dark:text-slate-300 font-medium">No invoices found</p>
+                            <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                              Try adjusting your search terms or{' '}
+                              <button
+                                onClick={() => handleSearchChange('')}
+                                className="text-brand-primary hover:text-brand-primary/80 font-medium"
+                              >
+                                clear the search
+                              </button>
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <p className="text-text-primary dark:text-slate-300 font-medium">
+                              No {activeTab === 'pending' ? 'pending invoices' : 'payment history'}
+                            </p>
+                            <p className="text-text-secondary dark:text-slate-400 text-sm mt-1">
+                              {activeTab === 'pending' 
+                                ? 'All invoices have been paid or none have been created yet'
+                                : 'No payments have been recorded yet'
+                              }
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Enhanced Pagination Controls */}
+          {currentData.length > 0 && (
+            <div className="px-4 py-4 sm:px-6 border-t border-surface-border dark:border-slate-700">
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={currentData.length}
+                itemName="invoices"
+                onPageChange={goToPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                showPageSizeSelector={true}
+                pageSizeOptions={[5, 10, 25, 50]}
               />
-            </label>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
-            <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Student</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Date Issued</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Status</th>
-                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Action</span></th>
-              </tr>
-            </thead>
-            <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
-              {unpaidBills.length > 0 ? unpaidBills.map(renderBillRow) : <tr><td colSpan={5} className="text-center py-8 text-text-secondary dark:text-slate-400">No pending invoices.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination controls for unpaid bills */}
-        {unpaidBillsAll.length > pageSize && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-700/50">
-            <div className="text-xs text-text-secondary dark:text-slate-400">
-              Page {unpaidPage} of {unpaidTotalPages} • {unpaidBillsAll.length} invoice(s)
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 disabled:opacity-50"
-                onClick={() => setUnpaidPage(p => Math.max(1, p - 1))}
-                disabled={unpaidPage <= 1}
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 disabled:opacity-50"
-                onClick={() => setUnpaidPage(p => Math.min(unpaidTotalPages, p + 1))}
-                disabled={unpaidPage >= unpaidTotalPages}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
-      
-      <Card>
-        <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-2xl font-bold text-brand-secondary-deep-dark dark:text-brand-secondary">Payment History</h2>
-          <div className="w-full sm:w-72">
-            <label className="block">
-              <span className="sr-only">Search student</span>
-              <input
-                type="text"
-                value={paidQuery}
-                onChange={(e) => { setPaidQuery(e.target.value); setPaidPage(1); }}
-                placeholder="Search student..."
-                className={`${control} text-sm`}
-                aria-label="Search payment history by student name"
-              />
-            </label>
-          </div>
-        </div>
-         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
-            <thead className="bg-surface-table-header dark:bg-slate-700 hidden md:table-header-group">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Student</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Date Issued</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary dark:text-slate-400 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-surface-card dark:bg-slate-800 divide-y divide-surface-border dark:divide-slate-700">
-              {paidBills.length > 0 ? paidBills.map(renderHistoryRow) : <tr><td colSpan={4} className="text-center py-8 text-text-secondary dark:text-slate-400">No paid invoices yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination controls for paid bills */}
-        {paidBillsAll.length > pageSize && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-700/50">
-            <div className="text-xs text-text-secondary dark:text-slate-400">
-              Page {paidPage} of {paidTotalPages} • {paidBillsAll.length} invoice(s)
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 disabled:opacity-50"
-                onClick={() => setPaidPage(p => Math.max(1, p - 1))}
-                disabled={paidPage <= 1}
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                className="text-xs px-3 py-1 rounded-md bg-surface-main dark:bg-slate-700/50 border border-surface-border dark:border-slate-700 disabled:opacity-50"
-                onClick={() => setPaidPage(p => Math.min(paidTotalPages, p + 1))}
-                disabled={paidPage >= paidTotalPages}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
 
       {/* Payment Breakdown Modal */}
       {breakdownBill && (
@@ -663,7 +726,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Edit invoice" onClick={closeEditModal}>
           <div className="w-full max-w-4xl" onClick={e => e.stopPropagation()}>
             <Card>
-              <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto scrollbar-hidden">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-2xl font-bold text-text-primary dark:text-slate-100">Edit Invoice</h3>
@@ -860,19 +923,11 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                       const creditApplied = useCredit ? Math.max(0, Math.min(creditToApply, Math.min(credit, remaining))) : 0;
                       const moneyApplied = Math.max(0, Number(payAmount) || 0);
                       
-                      console.log('Payment submission:', { 
-                        creditApplied, 
-                        moneyApplied, 
-                        paymentBill: paymentBill.id,
-                        currentStatus: paymentBill.status,
-                        total,
-                        alreadyPaid,
-                        remaining
-                      });
+                      // Payment submission tracking
                       
                       // Record credit payment first if any
                       if (creditApplied > 0) {
-                        console.log('Recording credit payment:', { amount: creditApplied, method: 'Credit' });
+                        // Recording credit payment
                         save(paymentBill.id, { 
                           amount: creditApplied, 
                           method: 'Credit',
@@ -882,7 +937,7 @@ export const BillingList: React.FC<BillingListProps> = ({ billings, students, on
                       
                       // Record money payment if any
                       if (moneyApplied > 0) {
-                        console.log('Recording money payment:', { amount: moneyApplied, method: payMethod });
+                        // Recording money payment
                         save(paymentBill.id, { 
                           amount: moneyApplied, 
                           method: payMethod, 

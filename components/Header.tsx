@@ -25,19 +25,24 @@ const NavButton: React.FC<{
   isMobile?: boolean;
 }> = ({ label, icon, isActive, onClick, isMobile = false }) => {
   const baseClasses = isMobile 
-    ? "flex items-center space-x-3 px-4 py-2.5 text-base w-full" 
-    : "flex items-center space-x-2 px-3 py-2 rounded-md font-medium transition-colors duration-200";
+    ? "flex items-center space-x-3 px-4 py-2.5 text-base w-full transition-all duration-200" 
+    : "flex items-center space-x-2 px-3 py-2 rounded-md font-medium transition-all duration-200";
   
   const activeClasses = isMobile 
-    ? "bg-brand-primary text-text-on-color font-semibold"
-    : "bg-brand-primary text-text-on-color font-semibold";
+    ? "bg-brand-primary text-white font-semibold shadow-sm"
+    : "bg-brand-primary text-white font-semibold shadow-sm";
 
   const inactiveClasses = isMobile
-    ? "text-text-primary dark:text-slate-200 hover:bg-surface-hover dark:hover:bg-slate-700"
-    : "text-text-secondary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-slate-100";
+    ? "text-text-primary dark:text-gray-200 hover:bg-surface-hover dark:hover:bg-gray-700 comfort:hover:bg-comfort-hover"
+    : "text-text-secondary dark:text-gray-300 hover:bg-surface-hover dark:hover:bg-gray-700 hover:text-text-primary dark:hover:text-gray-100 comfort:hover:bg-comfort-hover";
 
   return (
-    <button onClick={onClick} className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}>
+    <button 
+      onClick={onClick} 
+      className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+      aria-pressed={isActive}
+      role="tab"
+    >
       {icon}
       <span>{label}</span>
     </button>
@@ -91,12 +96,13 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
 
   return (
     <>
-  <header className="bg-surface-header/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-surface-border dark:border-slate-800 sticky top-0 z-40">
+      <header className="bg-surface-header/95 dark:bg-gray-900/95 comfort:bg-comfort-header/95 backdrop-blur-sm border-b border-surface-border dark:border-gray-700 comfort:border-comfort-border sticky top-0 z-40" id="primary-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl md:text-2xl">
-                <span className="font-light text-text-primary dark:text-slate-100">Grey</span><span className="font-extrabold text-brand-secondary-deep-dark dark:text-brand-secondary">Harmonics</span>
+                <span className="font-light text-text-primary dark:text-gray-100">Grey</span>
+                <span className="font-extrabold text-brand-secondary-deep-dark dark:text-brand-secondary">Harmonics</span>
               </h1>
             </div>
             {/* Desktop Navigation */}
@@ -145,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                             <li>
                               <div className="px-4 py-2">
                                 <div className="text-sm font-medium text-text-primary dark:text-slate-200 mb-2">Theme</div>
-                                <div className="grid grid-cols-4 gap-1 bg-surface-input dark:bg-slate-900 rounded-md p-1">
+                                <div className="grid grid-cols-4 gap-1 bg-gray-100 dark:bg-slate-900 comfort:bg-stone-100 rounded-md p-1 border border-gray-300 dark:border-slate-700 comfort:border-stone-300">
                                   {(['system','light','dark','comfort'] as const).map(mode => (
                                     <button key={mode} onClick={() => setThemeMode(mode)} className={`text-xs py-1 rounded-md ${theme===mode ? 'bg-brand-primary text-text-on-color font-semibold shadow' : 'text-text-secondary dark:text-slate-300 hover:bg-surface-hover dark:hover:bg-slate-700'}`}>{mode[0].toUpperCase()+mode.slice(1)}</button>
                                   ))}
@@ -155,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, theme, onT
                             <li>
                                 <div className="px-4 py-2">
                                     <label className="text-sm font-medium text-text-primary dark:text-slate-200">Font Size</label>
-                                    <div className="mt-2 flex bg-surface-input dark:bg-slate-900 rounded-md p-1 space-x-1">
+                                    <div className="mt-2 flex bg-gray-100 dark:bg-slate-900 comfort:bg-stone-100 rounded-md p-1 space-x-1 border border-gray-300 dark:border-slate-700 comfort:border-stone-300">
                                     {fontSizeOptions.map(item => (
                                         <button 
                                             key={item.size}

@@ -25,6 +25,7 @@ export interface Student {
   guardianName?: string;
   guardianFullName?: string;
   guardianRelationship?: string;
+  guardianOccupation?: string;
   guardianPhone?: string; // Made optional as per requirement
   guardianEmail?: string;
   guardianFacebook?: string;
@@ -32,6 +33,7 @@ export interface Student {
   secondaryGuardian?: {
     fullName?: string;
     relationship?: string; // e.g., 'Mother', 'Father', 'Aunt', 'Grandmother'
+    occupation?: string; // Guardian's occupation
     phone?: string; // Optional as per requirement
     email?: string;
     facebook?: string;

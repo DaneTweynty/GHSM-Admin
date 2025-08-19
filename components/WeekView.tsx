@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { Lesson, Student, Instructor } from '../types';
 import { TIME_SLOTS, DAYS_OF_WEEK_SHORT, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
 import { addMinutes, roundToQuarter, toMinutes, toHHMM, to12Hour } from '../utils/time';
+import { getEnhancedTextColor } from '../utils/color';
+import { useThemeDetection } from '../hooks/useThemeDetection';
 
 interface WeekViewProps {
   lessons: Lesson[];
@@ -100,6 +102,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
 }) => {
   const [dragGuide, setDragGuide] = useState<null | { top: number; height: number; label: string; dateKey: string }>(null);
   const [now, setNow] = useState<Date>(new Date());
+  const currentTheme = useThemeDetection(); // Add reactive theme detection
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
@@ -331,6 +334,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
               const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
               const cardH = Math.max(30, lesson._height);
               const compact = cardH < 42;
+              
+              // Get enhanced text color for better contrast based on current theme
+              const backgroundColor = instructor?.color || '#6B7280';
+              const { textColor, enhancedBackground } = getEnhancedTextColor(backgroundColor, currentTheme);
+              
               return (
                 <div key={lesson.id} className="absolute p-1 z-20" style={{ top: lesson._top, left, width, height: cardH }}>
                   <button
@@ -341,8 +349,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         e.currentTarget.setAttribute('data-allow-drag', 'true');
                       }
                     }}
-                    style={{ backgroundColor: instructor?.color || '#6B7280', height: '100%' }}
-                    className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
+                    style={{ 
+                      backgroundColor: enhancedBackground || backgroundColor, 
+                      height: '100%' 
+                    }}
+                    className={`relative w-full h-full text-left pl-3 pr-2 py-1 rounded ${textColor} text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden`}
                     title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDrag to move • Double-click to edit`}
                     aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Drag to move or double click to edit.`}
                     draggable="true"
@@ -540,6 +551,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     const endLabel = to12Hour(lesson.endTime || addMinutes(lesson.time, 60));
                     const cardH = Math.max(18, lesson._height);
                     const compact = cardH < 42;
+                    
+                    // Get enhanced text color for better contrast based on current theme
+                    const backgroundColor = instructor?.color || '#6B7280';
+                    const { textColor, enhancedBackground } = getEnhancedTextColor(backgroundColor, currentTheme);
+                    
                     return (
                       <div key={lesson.id} className="absolute p-1 z-20" style={{ top: lesson._top, left, width, height: cardH }}>
                         <button
@@ -550,8 +566,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               e.currentTarget.setAttribute('data-allow-drag', 'true');
                             }
                           }}
-                          style={{ backgroundColor: instructor?.color || '#6B7280', height: '100%' }}
-                          className="relative w-full h-full text-left pl-3 pr-2 py-1 rounded text-text-on-color dark:text-slate-800 text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden"
+                          style={{ 
+                            backgroundColor: enhancedBackground || backgroundColor, 
+                            height: '100%' 
+                          }}
+                          className={`relative w-full h-full text-left pl-3 pr-2 py-1 rounded ${textColor} text-sm leading-tight transition-all hover:opacity-90 active:cursor-grabbing cursor-grab shadow-md overflow-hidden`}
                           title={`Lesson: ${student?.name} with ${instructor?.name} • R${lesson.roomId}\n${startLabel}–${endLabel}${hasNote ? `\nHas note` : ''}\nDrag to move • Double-click to edit`}
                           aria-label={`Lesson for ${student?.name} with ${instructor?.name} in Room ${lesson.roomId} from ${startLabel} to ${endLabel}${hasNote ? '. This lesson has a note.' : ''} Drag to move or double click to edit.`}
                           draggable="true"

@@ -21,6 +21,7 @@ import {
   MessageSquare,
   X
 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 import type { Instructor, ChatMessage, ChatConversation } from '../types';
 
 interface ImprovedChatProps {
@@ -43,6 +44,7 @@ const commonEmojis = [
 ];
 
 export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, currentUser }) => {
+  const { theme } = useApp();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [messages, setMessages] = useState<{ [conversationId: string]: ChatMessage[] }>({});
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -54,7 +56,14 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
   const [recordingTime, setRecordingTime] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [isPlaying, setIsPlaying] = useState<{ [messageId: string]: boolean }>({});
+  
+  // Modal states
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [showVideoCallModal, setShowVideoCallModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -66,6 +75,22 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showEmojiPicker) {
+        const target = event.target as Element;
+        if (!target.closest('.emoji-picker') && !target.closest('.emoji-button')) {
+          setShowEmojiPicker(null);
+          setEmojiPickerPosition(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
 
   useEffect(() => {
     scrollToBottom();
@@ -238,14 +263,17 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
           const existingReaction = reactions.find(r => r.userId === currentUser.id && r.emoji === emoji);
           
           if (existingReaction) {
+            // User clicked the same emoji they already reacted with - remove it
             return {
               ...msg,
               reactions: reactions.filter(r => !(r.userId === currentUser.id && r.emoji === emoji))
             };
           } else {
+            // User clicked a different emoji - remove any existing reaction from this user first, then add new one
+            const reactionsWithoutUserReactions = reactions.filter(r => r.userId !== currentUser.id);
             return {
               ...msg,
-              reactions: [...reactions, {
+              reactions: [...reactionsWithoutUserReactions, {
                 userId: currentUser.id,
                 userName: currentUser.name,
                 emoji,
@@ -340,6 +368,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             <h2 className="text-lg font-semibold text-text-primary dark:text-slate-200">Messages</h2>
             <div className="flex items-center space-x-2">
               <button
+                onClick={() => setShowSettingsModal(true)}
                 className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700"
                 title="Settings"
               >
@@ -362,7 +391,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-hidden">
           {conversations.map((conversation) => {
             const otherParticipant = conversation.participants.find(p => p.id !== currentUser.id);
             const lastMessage = messages[conversation.id]?.slice(-1)[0];
@@ -466,13 +495,25 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
               </div>
               
               <div className="flex items-center space-x-2">
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                <button 
+                  onClick={() => setShowCallModal(true)}
+                  className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700"
+                  title="Voice Call"
+                >
                   <Phone className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                <button 
+                  onClick={() => setShowVideoCallModal(true)}
+                  className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700"
+                  title="Video Call"
+                >
                   <Video className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
-                <button className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700">
+                <button 
+                  onClick={() => setShowInfoModal(true)}
+                  className="p-2 rounded-lg transition-colors hover:bg-surface-hover dark:hover:bg-slate-700"
+                  title="Chat Info"
+                >
                   <Info className="w-4 h-4 text-text-secondary dark:text-slate-400" />
                 </button>
               </div>
@@ -504,11 +545,11 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 space-y-4 relative z-[1000]">
               {activeMessages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'} group`}
+                  className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'} group relative`}
                 >
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg relative ${
@@ -590,15 +631,40 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                       <div className="flex items-center space-x-1">
                         {/* Quick reactions */}
                         <div className="flex space-x-1">
-                          {message.reactions?.map((reaction, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => addReaction(message.id, reaction.emoji)}
-                              className="text-xs px-1 py-0.5 bg-surface-hover dark:bg-slate-600 rounded"
-                            >
-                              {reaction.emoji}
-                            </button>
-                          ))}
+                          {message.reactions && message.reactions.length > 0 && (() => {
+                            // Group reactions by emoji
+                            const groupedReactions = message.reactions.reduce((acc, reaction) => {
+                              if (!acc[reaction.emoji]) {
+                                acc[reaction.emoji] = {
+                                  emoji: reaction.emoji,
+                                  count: 0,
+                                  users: [],
+                                  hasCurrentUser: false
+                                };
+                              }
+                              acc[reaction.emoji].count++;
+                              acc[reaction.emoji].users.push(reaction.userName);
+                              if (reaction.userId === currentUser.id) {
+                                acc[reaction.emoji].hasCurrentUser = true;
+                              }
+                              return acc;
+                            }, {} as Record<string, { emoji: string; count: number; users: string[]; hasCurrentUser: boolean }>);
+
+                            return Object.values(groupedReactions).map((reactionGroup, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => addReaction(message.id, reactionGroup.emoji)}
+                                className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                                  reactionGroup.hasCurrentUser 
+                                    ? 'bg-brand-primary text-white' 
+                                    : 'bg-surface-hover dark:bg-slate-600 hover:bg-surface-main dark:hover:bg-slate-500'
+                                }`}
+                                title={`${reactionGroup.users.join(', ')} reacted with ${reactionGroup.emoji}`}
+                              >
+                                {reactionGroup.emoji} {reactionGroup.count > 1 ? reactionGroup.count : ''}
+                              </button>
+                            ));
+                          })()}
                         </div>
 
                         {/* Message actions */}
@@ -610,8 +676,15 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                             <Reply className="w-3 h-3" />
                           </button>
                           <button
-                            onClick={() => setShowEmojiPicker(showEmojiPicker === message.id ? null : message.id)}
-                            className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setEmojiPickerPosition({ 
+                                x: rect.right - 200, // Position to the left of the button
+                                y: rect.top - 60 // Position above the button
+                              });
+                              setShowEmojiPicker(showEmojiPicker === message.id ? null : message.id);
+                            }}
+                            className="emoji-button p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
                           >
                             <Smile className="w-3 h-3" />
                           </button>
@@ -624,26 +697,6 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                         </div>
                       )}
                       </div>
-
-                      {/* Emoji picker */}
-                      {showEmojiPicker === message.id && (
-                        <div className="absolute bottom-full right-0 mb-2 p-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg z-10">
-                          <div className="flex space-x-1">
-                            {commonEmojis.map((emojiData) => (
-                              <button
-                                key={emojiData.emoji}
-                                onClick={() => {
-                                  addReaction(message.id, emojiData.emoji);
-                                  setShowEmojiPicker(null);
-                                }}
-                                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
-                              >
-                                {emojiData.text}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -665,7 +718,7 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800">
+            <div className="p-4 border-t border-surface-border dark:border-slate-700 bg-surface-header dark:bg-slate-800 relative">
               <div className="flex items-end space-x-2">
                 {/* Attachment button */}
                 <button
@@ -715,12 +768,33 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
                   
                   {/* Emoji button */}
                   <button
-                    onClick={() => {}}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-hover dark:hover:bg-slate-600 transition-colors"
+                    onClick={() => setShowEmojiPicker(showEmojiPicker === 'input' ? null : 'input')}
+                    className="emoji-button absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-surface-hover dark:hover:bg-slate-600 transition-colors"
                   >
                     <Smile className="w-5 h-5 text-text-secondary dark:text-slate-400" />
                   </button>
                 </div>
+
+                {/* Emoji Picker */}
+                {showEmojiPicker === 'input' && (
+                  <div className="emoji-picker absolute bottom-full right-0 mb-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg p-3 z-[99999]">
+                    <div className="grid grid-cols-6 gap-2">
+                      {commonEmojis.map((emoji, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setNewMessage(prev => prev + emoji.emoji);
+                            setShowEmojiPicker(null);
+                            inputRef.current?.focus();
+                          }}
+                          className="p-2 hover:bg-surface-hover dark:hover:bg-slate-600 rounded text-lg transition-colors"
+                        >
+                          {emoji.emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Send button */}
                 <button
@@ -754,6 +828,196 @@ export const ImprovedChat: React.FC<ImprovedChatProps> = ({ instructors, current
         className="hidden"
         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
       />
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+          <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Chat Settings</h3>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
+              >
+                <X className="w-4 h-4 text-text-secondary dark:text-slate-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-text-primary dark:text-slate-200">Notifications</span>
+                <input type="checkbox" defaultChecked className="rounded" />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-primary dark:text-slate-200">Sound Effects</span>
+                <input type="checkbox" defaultChecked className="rounded" />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-text-primary dark:text-slate-200">Auto-scroll</span>
+                <input type="checkbox" defaultChecked className="rounded" />
+              </div>
+              <div className="pt-4 border-t border-surface-border dark:border-slate-700">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="w-full py-2 px-4 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                >
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Call Modal */}
+      {showCallModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+          <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Voice Call</h3>
+              <button
+                onClick={() => setShowCallModal(false)}
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
+              >
+                <X className="w-4 h-4 text-text-secondary dark:text-slate-400" />
+              </button>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Phone className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-text-primary dark:text-slate-200 mb-6">
+                Calling {activeConversation?.participants.find(p => p.id !== currentUser.id)?.name}...
+              </p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => setShowCallModal(false)}
+                  className="py-2 px-6 bg-status-red text-white rounded-lg hover:bg-status-red/90 transition-colors"
+                >
+                  End Call
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Call Modal */}
+      {showVideoCallModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+          <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Video Call</h3>
+              <button
+                onClick={() => setShowVideoCallModal(false)}
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
+              >
+                <X className="w-4 h-4 text-text-secondary dark:text-slate-400" />
+              </button>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-text-primary dark:text-slate-200 mb-6">
+                Starting video call with {activeConversation?.participants.find(p => p.id !== currentUser.id)?.name}...
+              </p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => setShowVideoCallModal(false)}
+                  className="py-2 px-6 bg-status-red text-white rounded-lg hover:bg-status-red/90 transition-colors"
+                >
+                  End Call
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Info Modal */}
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1001]">
+          <div className="bg-surface-card dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4 border border-surface-border dark:border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary dark:text-slate-200">Chat Information</h3>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-700 rounded"
+              >
+                <X className="w-4 h-4 text-text-secondary dark:text-slate-400" />
+              </button>
+            </div>
+            {activeConversation && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white text-xl font-semibold">
+                      {activeConversation.participants.find(p => p.id !== currentUser.id)?.name.charAt(0) || '?'}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-text-primary dark:text-slate-200">
+                    {activeConversation.participants.find(p => p.id !== currentUser.id)?.name || 'Unknown'}
+                  </h4>
+                  <p className="text-sm text-text-secondary dark:text-slate-400">
+                    {activeConversation.participants.find(p => p.id !== currentUser.id)?.isOnline ? 'Online' : 'Offline'}
+                  </p>
+                </div>
+                <div className="border-t border-surface-border dark:border-slate-700 pt-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary dark:text-slate-400">Messages</span>
+                      <span className="text-text-primary dark:text-slate-200">{messages[activeConversation.id]?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary dark:text-slate-400">Created</span>
+                      <span className="text-text-primary dark:text-slate-200">
+                        {new Date(activeConversation.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-surface-border dark:border-slate-700">
+                  <button
+                    onClick={() => setShowInfoModal(false)}
+                    className="w-full py-2 px-4 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Global Emoji Picker for Message Reactions - Positioned at top level for highest z-index */}
+      {showEmojiPicker && showEmojiPicker !== 'input' && emojiPickerPosition && (
+        <div 
+          className="emoji-picker fixed p-2 bg-surface-card dark:bg-slate-700 border border-surface-border dark:border-slate-600 rounded-lg shadow-lg"
+          style={{ 
+            zIndex: 99999,
+            left: `${emojiPickerPosition.x}px`,
+            top: `${emojiPickerPosition.y}px`,
+            position: 'fixed'
+          }}
+        >
+          <div className="flex space-x-1">
+            {commonEmojis.map((emojiData) => (
+              <button
+                key={emojiData.emoji}
+                onClick={() => {
+                  addReaction(showEmojiPicker, emojiData.emoji);
+                  setShowEmojiPicker(null);
+                  setEmojiPickerPosition(null);
+                }}
+                className="p-1 hover:bg-surface-hover dark:hover:bg-slate-600 rounded"
+              >
+                {emojiData.text}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

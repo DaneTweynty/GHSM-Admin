@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
 import type { Billing, BillingItem, Student } from '../types';
@@ -40,14 +41,23 @@ export const InvoicePreviewModal: React.FC<Props> = ({ isOpen, onClose, billing,
 
   const handleSavePng = async () => {
     if (!ref.current) return;
-    const canvas = await html2canvas(ref.current, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `invoice-${billing.id}.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    
+    try {
+      toast.loading('Generating invoice image...');
+      const canvas = await html2canvas(ref.current, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `invoice-${billing.id}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.dismiss();
+      toast.success(`Invoice for ${billing.studentName} saved successfully!`);
+    } catch {
+      toast.dismiss();
+      toast.error('Failed to save invoice. Please try again.');
+    }
   };
 
   return createPortal(

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { ADMIN_PASSWORD } from '../constants';
 
 interface AdminAuthModalProps {
@@ -25,14 +26,16 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
       setError(null);
+      toast.success('Authentication successful!');
       onSuccess();
     } else {
       setError('Incorrect password. Please try again.');
+      toast.error('Incorrect password. Please try again.');
     }
   };
 
   return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-surface-card dark:bg-slate-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
         {/* Fixed Header */}
         <div className="flex-shrink-0 mb-4">
@@ -41,7 +44,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
         </div>
         
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto thin-scroll">
+        <div className="flex-1 overflow-y-auto scrollbar-hidden">
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-text-primary dark:text-slate-300 mb-1">
@@ -64,7 +67,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
         </div>
         
         {/* Fixed Footer */}
-        <div className="flex-shrink-0 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <div className="flex-shrink-0 pt-4">
           <div className="flex justify-end space-x-3">
             <button
               type="button"

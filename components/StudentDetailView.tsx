@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import ThemedSelect from './ThemedSelect';
 import { control } from './ui';
 import type { Student, Lesson, Billing, Instructor } from '../types';
@@ -76,7 +77,7 @@ const CopyIcon = () => (
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
   </svg>
 );
-const CheckIcon = () => (
+const _CheckIcon = () => (
   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
@@ -119,7 +120,7 @@ const DetailItem: React.FC<{ label: string; value?: string | number; copiable?: 
 };
 
 export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, lessons, billings, instructors }) => {
-  const { handleMarkAttendance, handleUpdateStudentContact } = useApp();
+  const { handleMarkAttendance: _handleMarkAttendance, handleUpdateStudentContact } = useApp();
   const [showBreakdown, setShowBreakdown] = React.useState<null | { id: string }>(null);
   const instructorMap = useMemo(() => new Map<string, Instructor>(instructors.map(i => [i.id, i] as [string, Instructor])), [instructors]);
 
@@ -135,7 +136,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
   const [errors, setErrors] = useState<{ contactPhone?: string; gPhone?: string }>({});
 
   const isMinor = (student.age ?? 0) > 0 && (student.age as number) < 18;
-  const wasAttendedRecently = useMemo(() => {
+  const _wasAttendedRecently = useMemo(() => {
     if (!student.lastAttendanceMarkedAt) return false;
     const now = Date.now();
     return now - student.lastAttendanceMarkedAt < 24 * 60 * 60 * 1000;
@@ -172,12 +173,18 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
     if (contactPhone && !isValidPhone(contactPhone)) nextErrors.contactPhone = 'Enter a valid 10-digit phone (or 1+10).';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    handleUpdateStudentContact(student.id, {
-      email: contactEmail.trim() || undefined,
-      contactNumber: normalizePhone(contactPhone) || undefined,
-      facebook: contactFacebook.trim() || undefined,
-    });
-    setIsEditingContact(false);
+    
+    try {
+      handleUpdateStudentContact(student.id, {
+        email: contactEmail.trim() || undefined,
+        contactNumber: normalizePhone(contactPhone) || undefined,
+        facebook: contactFacebook.trim() || undefined,
+      });
+      setIsEditingContact(false);
+      // Success feedback is handled by the context via transaction system
+    } catch {
+      toast.error('Failed to update contact information. Please try again.');
+    }
   };
 
   const handleSaveGuardian = () => {
@@ -185,13 +192,19 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
     if (gPhone && !isValidPhone(gPhone)) nextErrors.gPhone = 'Enter a valid 10-digit phone (or 1+10).';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    handleUpdateStudentContact(student.id, {
-      guardianFullName: gName.trim() || undefined,
-      guardianPhone: normalizePhone(gPhone) || undefined,
-      guardianEmail: gEmail.trim() || undefined,
-      guardianFacebook: gFacebook.trim() || undefined,
-    });
-    setIsEditingGuardian(false);
+    
+    try {
+      handleUpdateStudentContact(student.id, {
+        guardianFullName: gName.trim() || undefined,
+        guardianPhone: normalizePhone(gPhone) || undefined,
+        guardianEmail: gEmail.trim() || undefined,
+        guardianFacebook: gFacebook.trim() || undefined,
+      });
+      setIsEditingGuardian(false);
+      // Success feedback is handled by the context via transaction system
+    } catch {
+      toast.error('Failed to update guardian information. Please try again.');
+    }
   };
 
   const lastAttendanceLabel = student.lastAttendanceMarkedAt ? new Date(student.lastAttendanceMarkedAt).toLocaleString() : 'N/A';
@@ -496,7 +509,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           <div className="flex items-center gap-2">
             <ThemedSelect
               value={lessonFilter}
-              onChange={e => { setLessonFilter(e.target.value as any); setLessonPage(1); }}
+              onChange={e => { setLessonFilter(e.target.value as 'all' | 'upcoming' | 'past'); setLessonPage(1); }}
               className="text-xs px-2 py-1"
             >
               <option value="all">All</option>
@@ -506,7 +519,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
           </div>
         </div>
         {lessons.length > 0 ? (
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hidden">
             {filteredLessons.length === 0 ? (
               <p className="text-sm text-text-secondary dark:text-slate-400">No lessons for this filter.</p>
             ) : (
@@ -563,7 +576,7 @@ export const StudentDetailView: React.FC<StudentDetailViewProps> = ({ student, l
       <Card className="p-4 flex flex-col h-full">
         <h3 className="text-base font-semibold text-text-primary dark:text-slate-100 mb-3">Payment History</h3>
         {billings.length > 0 ? (
-          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto scrollbar-hidden">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-surface-border dark:border-slate-700">

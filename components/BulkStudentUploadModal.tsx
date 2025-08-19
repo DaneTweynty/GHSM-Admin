@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Card } from './Card';
-import { ICONS, INSTRUMENT_OPTIONS } from '../constants';
+import toast from 'react-hot-toast';
+import { INSTRUMENT_OPTIONS } from '../constants';
 import type { Student, Instructor } from '../types';
 
 interface BulkStudentUploadModalProps {
@@ -274,6 +274,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
 
     if (!selectedFile.name.endsWith('.csv')) {
       setErrors(['Please select a CSV file']);
+      toast.error('Please select a CSV file');
       return;
     }
 
@@ -287,6 +288,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
       
       if (students.length === 0) {
         setErrors(['No valid student data found in CSV file. Make sure you filled the STUDENT DATA section.']);
+        toast.error('No valid student data found in CSV file');
         setIsProcessing(false);
         return;
       }
@@ -295,14 +297,17 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
       
       if (validationErrors.length > 0) {
         setErrors(validationErrors);
+        toast.error(`Found ${validationErrors.length} validation error${validationErrors.length > 1 ? 's' : ''} in CSV file`);
         setIsProcessing(false);
         return;
       }
 
       setPreviewData(students);
       setStep('preview');
-    } catch (error) {
+      toast.success(`Successfully processed ${students.length} student${students.length > 1 ? 's' : ''} from CSV file`);
+    } catch {
       setErrors(['Error reading CSV file. Please check the format.']);
+      toast.error('Error reading CSV file. Please check the format.');
     } finally {
       setIsProcessing(false);
     }
@@ -327,9 +332,15 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
       creditBalance: 0
     }));
 
-    onUpload(studentsToAdd);
-    setStep('success');
-    setIsProcessing(false);
+    try {
+      onUpload(studentsToAdd);
+      setStep('success');
+      // Success feedback is handled by the context via transaction system
+    } catch {
+      toast.error('Failed to add students. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleReset = () => {
@@ -379,7 +390,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-6 overflow-y-auto scrollbar-hidden max-h-[calc(90vh-140px)]">
           {step === 'upload' && (
             <div className="space-y-6">
               {/* Instructions */}
@@ -451,7 +462,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
               {errors.length > 0 && (
                 <div className="bg-status-red/10 border border-status-red/20 rounded-lg p-4">
                   <h4 className="font-medium text-status-red mb-2">Validation Errors</h4>
-                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto">
+                  <div className="text-sm text-status-red space-y-1 max-h-40 overflow-y-auto scrollbar-hidden">
                     {errors.map((error, index) => (
                       <div key={index} className="flex items-start space-x-1">
                         <span className="text-status-red">•</span>
@@ -508,7 +519,7 @@ export const BulkStudentUploadModal: React.FC<BulkStudentUploadModalProps> = ({
 
               {/* Preview Table */}
               <div className="border border-surface-border dark:border-slate-700 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-h-96">
+                <div className="overflow-x-auto scrollbar-hidden max-h-96">
                   <table className="min-w-full divide-y divide-surface-border dark:divide-slate-700">
                     <thead className="bg-surface-table-header dark:bg-slate-700">
                       <tr>

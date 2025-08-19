@@ -2,8 +2,9 @@ import React, { createContext, useContext, useMemo, useState, useEffect, useCall
 import toast from 'react-hot-toast';
 import type { Student, Instructor, Lesson, Billing, View, CalendarView, Payment, PaymentMethod } from '../types';
 import { BILLING_CYCLE, LESSON_PRICE, EVENT_COLORS, TIME_SLOTS, toYYYYMMDD, LUNCH_BREAK_TIME } from '../constants';
-import { addMinutes, floorToQuarter, roundToQuarter, rangesOverlap, toMinutes } from '../utils/time';
+import { addMinutes, roundToQuarter, rangesOverlap, toMinutes } from '../utils/time';
 import { generateSchedules } from '../services/scheduleService';
+import { generateAvatarUrl } from '../utils/avatarUtils';
 
 export type StudentEnrollmentData = {
   name: string;
@@ -58,7 +59,7 @@ type TxType =
   | 'billing.update'
   | 'student.status' | 'student.enroll' | 'student.contact.update'
   | 'instructor.save' | 'instructor.status';
-export type TransactionEntry = { id: string; type: TxType; status: TxStatus; message: string; timestamp: number; meta?: Record<string, any> };
+export type TransactionEntry = { id: string; type: TxType; status: TxStatus; message: string; timestamp: number; meta?: Record<string, unknown> };
 
 export type AppState = {
   view: View;
@@ -149,6 +150,9 @@ export type AppState = {
     guardianFacebook?: string;
   }) => void;
 
+  // Add: bulk enrollment function
+  handleBulkEnrollStudents: (studentsData: Partial<Student>[]) => Promise<void>;
+
   enrollmentSuccessMessage: string | null;
   installPromptEvent: (Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) | null;
   handleInstallRequest: () => void;
@@ -167,7 +171,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [view, setView] = useState<View>(() => {
     const v = localStorage.getItem('app:view') as View | null;
-    return (v === 'dashboard' || v === 'enrollment' || v === 'teachers' || v === 'students' || v === 'billing' || v === 'trash') ? v : 'dashboard';
+    return (v === 'dashboard' || v === 'enrollment' || v === 'teachers' || v === 'students' || v === 'billing' || v === 'chat' || v === 'trash') ? v : 'dashboard';
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +205,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
   const [adminActionToConfirm, setAdminActionToConfirm] = useState<AdminAction | null>(null);
   const [enrollmentSuccessMessage, setEnrollmentSuccessMessage] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [_toastMessage, _setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const [theme, setTheme] = useState<'light'|'dark'|'comfort'|'system'>(() => {
     const t = localStorage.getItem('theme');
@@ -225,11 +229,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return Array.isArray(arr) ? arr : [];
     } catch { return []; }
   });
-  const pushTx = useCallback((type: TxType, status: TxStatus, message: string, meta?: Record<string, any>) => {
+  const pushTx = useCallback((type: TxType, status: TxStatus, message: string, meta?: Record<string, unknown>) => {
     const entry: TransactionEntry = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, type, status, message, timestamp: Date.now(), meta };
     setTransactions(prev => {
       const next = [entry, ...prev].slice(0, 100);
-      try { localStorage.setItem('app:transactions', JSON.stringify(next)); } catch (error) {
+      try { localStorage.setItem('app:transactions', JSON.stringify(next)); } catch {
         // Ignore localStorage errors
       }
       return next;
@@ -267,7 +271,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Store as ISO date to avoid TZ ambiguity on restore
     try {
       localStorage.setItem('app:currentDate', currentDate.toISOString());
-    } catch (error) {
+    } catch {
       // Ignore localStorage errors  
     }
   }, [currentDate]);
@@ -285,7 +289,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     apply();
   // Persist the explicit theme selection (including 'system')
-  try { localStorage.setItem('theme', theme); } catch (error) {
+  try { localStorage.setItem('theme', theme); } catch {
     // Ignore localStorage errors
   }
     let mql: MediaQueryList | null = null;
@@ -295,7 +299,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mql.addEventListener ? mql.addEventListener('change', listener) : mql.addListener(listener);
       return () => {
         if (!mql) return;
-        mql.removeEventListener ? mql.removeEventListener('change', listener as any) : mql.removeListener(listener as any);
+        const typedListener = listener as (event: MediaQueryListEvent) => void;
+        mql.removeEventListener ? mql.removeEventListener('change', typedListener) : mql.removeListener(typedListener);
       };
     }
     return () => {}; // Return empty cleanup function when not using system theme
@@ -421,19 +426,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     if (updated) pushTx('attendance.mark', 'success', 'Attendance marked');
     else pushTx('attendance.mark', 'error', 'Attendance already marked in the last 24 hours');
-  }, []);
+  }, [pushTx]);
 
   const handleRecordPayment = useCallback((billingId: string, payment: { amount: number; method: PaymentMethod; reference?: string; note?: string; overpayHandling?: 'next' | 'hold' }) => {
-    console.log('AppContext.handleRecordPayment called:', { billingId, amount: payment.amount, method: payment.method });
+    // Record payment processing
     
     // If the payment method is Credit, ensure we don't exceed available credit; enforce later with UI as well.
     setBillings(prev => {
-      console.log('AppContext: Current billings before update:', prev.map(b => ({ id: b.id, status: b.status, paidAmount: b.paidAmount })));
+      // Process payment for billing
       
       const next = prev.map(b => {
         if (b.id !== billingId) return b;
         
-        console.log('AppContext: Processing billing:', { id: b.id, currentStatus: b.status, currentPaidAmount: b.paidAmount, amount: b.amount });
+        // Process billing payment
         
         const p: Payment = {
           id: `pay-${Date.now()}`,
@@ -450,18 +455,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const paidAmount = payments.reduce((s, it) => s + (Number(it.amount) || 0), 0);
         const status: 'paid' | 'unpaid' = paidAmount >= b.amount ? 'paid' : 'unpaid';
         
-        console.log('AppContext: Updated billing:', { 
-          id: b.id, 
-          newStatus: status, 
-          newPaidAmount: paidAmount, 
-          amount: b.amount,
-          paymentsCount: payments.length 
-        });
+        // Billing updated successfully
         
         return { ...b, payments, paidAmount, status } as Billing;
       });
 
-      console.log('AppContext: Next billings after update:', next.map(b => ({ id: b.id, status: b.status, paidAmount: b.paidAmount })));
+      // Billing update complete
 
       const updated = next.find(b => b.id === billingId);
       if (updated) {
@@ -609,7 +608,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const eMin = toMinutes(repeatLesson.endTime || addMinutes(repeatLesson.time, 60));
           if (sMin < lunchMin && lunchMin < eMin) continue; // skip this occurrence silently
           // conflict check against existing and queued ones
-          const { id: _omit, ...repeatForCheck } = repeatLesson as any;
+          const { id: _omit, ...repeatForCheck } = repeatLesson;
           const conflict = checkConflict(repeatForCheck, undefined);
           if (!conflict) lessonsToAdd.push(repeatLesson);
         }
@@ -650,7 +649,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const sMin = toMinutes(repeatLesson.time);
           const eMin = toMinutes(repeatLesson.endTime || addMinutes(repeatLesson.time, 60));
           if (sMin < lunchMin && lunchMin < eMin) continue;
-          const { id: _omit, ...repeatForCheck } = repeatLesson as any;
+          const { id: _omit, ...repeatForCheck } = repeatLesson;
           const conflict = checkConflict(repeatForCheck, undefined);
           if (!conflict) newOccurrences.push(repeatLesson);
         }
@@ -736,11 +735,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       guardianFacebook: studentData.guardianFacebook,
       secondaryGuardian: studentData.secondaryGuardian,
       status: 'active',
-      profilePictureUrl: undefined,
+      profilePictureUrl: generateAvatarUrl(studentData.name),
       parentStudentId: studentData.parentStudentId,
     };
     setStudents(prev => [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name)));
   }, [getNewStudentIdNumber]);
+
+  const handleBulkEnrollStudents = useCallback(async (studentsData: Partial<Student>[]) => {
+    const newStudents: Student[] = studentsData.map(studentData => ({
+      id: `student-${Date.now()}-${Math.random()}`,
+      studentIdNumber: getNewStudentIdNumber(),
+      name: studentData.name || '',
+      instrument: studentData.instrument || '',
+      instructorId: studentData.instructorId || '',
+      sessionsAttended: 0,
+      sessionsBilled: 0,
+      nickname: studentData.nickname,
+      birthdate: studentData.birthdate,
+      age: studentData.age,
+      email: studentData.email,
+      contactNumber: studentData.contactNumber,
+      facebook: studentData.facebook,
+      gender: studentData.gender || 'Male',
+      address: studentData.address,
+      guardianFullName: studentData.guardianFullName,
+      guardianRelationship: studentData.guardianRelationship,
+      guardianOccupation: studentData.guardianOccupation,
+      guardianPhone: studentData.guardianPhone,
+      guardianEmail: studentData.guardianEmail,
+      guardianFacebook: studentData.guardianFacebook,
+      secondaryGuardian: studentData.secondaryGuardian,
+      status: 'active',
+      profilePictureUrl: generateAvatarUrl(studentData.name || 'Student'),
+      parentStudentId: studentData.parentStudentId,
+      creditBalance: 0,
+    }));
+    
+    setStudents(prev => [...prev, ...newStudents].sort((a, b) => a.name.localeCompare(b.name)));
+    pushTx('student.enroll', 'success', `${newStudents.length} students enrolled successfully`, { count: newStudents.length });
+  }, [getNewStudentIdNumber, pushTx]);
 
   const handleToggleStudentStatus = useCallback((studentId: string) => {
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, status: student.status === 'active' ? 'inactive' : 'active' } : student)));
@@ -762,7 +795,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStudents(prevStudents => prevStudents.map(student => (student.id === studentId ? { ...student, sessionsAttended: student.sessionsBilled + unpaidCount } : student)));
     handleCloseEditSessionModal();
   pushTx('student.status', 'success', 'Sessions updated', { studentId, unpaidCount });
-  }, [handleCloseEditSessionModal]);
+  }, [handleCloseEditSessionModal, pushTx]);
 
   // Add: handler to update student's contact/guardian details
   const handleUpdateStudentContact = useCallback((studentId: string, updates: {
@@ -796,15 +829,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleSaveInstructor = useCallback((instructorData: Instructor) => {
-    if (isAddInstructorMode) {
-      const newInstructor: Instructor = { ...instructorData, id: `inst-${Date.now()}`, status: 'active' };
-      setInstructors(prev => [...prev, newInstructor].sort((a, b) => a.name.localeCompare(b.name)));
-    pushTx('instructor.save', 'success', 'Instructor added', { instructorId: newInstructor.id });
-    } else {
-      setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorData.id ? instructorData : inst)));
-    pushTx('instructor.save', 'success', 'Instructor updated', { instructorId: instructorData.id });
+    try {
+      if (isAddInstructorMode) {
+        const newInstructor: Instructor = { ...instructorData, id: `inst-${Date.now()}`, status: 'active' };
+        setInstructors(prev => [...prev, newInstructor].sort((a, b) => a.name.localeCompare(b.name)));
+        pushTx('instructor.save', 'success', `Instructor "${instructorData.name}" has been successfully added!`, { instructorId: newInstructor.id });
+      } else {
+        setInstructors(prevInstructors => prevInstructors.map(inst => (inst.id === instructorData.id ? instructorData : inst)));
+        pushTx('instructor.save', 'success', `Instructor "${instructorData.name}" has been successfully updated!`, { instructorId: instructorData.id });
+      }
+      handleCloseEditInstructorModal();
+    } catch (error) {
+      const action = isAddInstructorMode ? 'add' : 'update';
+      pushTx('instructor.save', 'error', `Failed to ${action} instructor. Please try again.`, { error: error instanceof Error ? error.message : 'Unknown error' });
     }
-    handleCloseEditInstructorModal();
   }, [isAddInstructorMode, handleCloseEditInstructorModal, pushTx]);
 
   const handleRequestAdminAction = useCallback((action: AdminAction) => {
@@ -834,10 +872,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       case 'enrollStudent': {
         const { studentData } = adminActionToConfirm;
         handleEnrollStudent(studentData);
-  setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
-  // Let page banners still work if any component uses the message
-  setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
-  pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);
+        setEnrollmentSuccessMessage(`Student "${studentData.name.trim()}" has been successfully enrolled!`);
+        // Note: Navigation to students page should be handled by the enrollment page component
+        // Let page banners still work if any component uses the message
+        setTimeout(() => setEnrollmentSuccessMessage(null), 5000);
+        pushTx('student.enroll', 'success', `Enrolled ${studentData.name} in ${studentData.instrument}`);
         break;
       }
       case 'resetData':
@@ -875,7 +914,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setLessons(prev => prev.map(l => (l.id === lessonId ? { ...l, status: 'scheduled' } : l)));
     pushTx('lesson.restore', 'success', 'Lesson restored', { lessonId });
-  }, [lessons, pushTx]);
+  }, [lessons, pushTx, checkConflict]);
 
   const getAdminActionDescription = () => {
     if (!adminActionToConfirm) return '';
@@ -940,6 +979,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // expose new handler
   handleUpdateBilling,
   handleUpdateStudentContact,
+  handleBulkEnrollStudents,
   enrollmentSuccessMessage, installPromptEvent, handleInstallRequest,
   isDragging, handleDropOnTrash,
     timeSlots,

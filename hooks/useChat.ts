@@ -2,12 +2,12 @@ import { useState, useCallback } from 'react';
 import type { ChatMessage, ChatConversation, ChatAnalytics } from '../types';
 
 // Simplified chat hook to make the project buildable
-export const useChat = (conversationId?: string) => {
+export const useChat = (_conversationId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [conversations, _setConversations] = useState<ChatConversation[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, _setSearchQuery] = useState('');
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
 
   // Mock analytics
@@ -22,7 +22,7 @@ export const useChat = (conversationId?: string) => {
   };
 
   // Simplified methods
-  const sendMessage = useCallback(async (content: string, type = 'text', _attachments?: any[]) => {
+  const sendMessage = useCallback(async (content: string, type = 'text', _attachments?: File[]) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       senderId: 'user',
@@ -31,7 +31,7 @@ export const useChat = (conversationId?: string) => {
       content,
       timestamp: new Date().toISOString(),
       readBy: [],
-      type: type as any,
+      type: type as 'text' | 'file' | 'voice' | 'image' | 'video',
       status: 'sent'
     };
     setMessages(prev => [...prev, newMessage]);
@@ -66,13 +66,11 @@ export const useChat = (conversationId?: string) => {
   }, []);
 
   const uploadFile = useCallback(async (_file: File) => {
-    // Stub implementation
-    console.log('File upload not implemented');
+    // Stub implementation - File upload not implemented
   }, []);
 
   const scheduleMessage = useCallback(async (_content: string, _sendAt: Date) => {
-    // Stub implementation
-    console.log('Message scheduling not implemented');
+    // Stub implementation - Message scheduling not implemented
   }, []);
 
   const startScreenShare = useCallback(() => {
@@ -87,13 +85,12 @@ export const useChat = (conversationId?: string) => {
     // Stub implementation
   }, []);
 
-  const updatePreferences = useCallback((_preferences: any) => {
+  const updatePreferences = useCallback((_preferences: Record<string, unknown>) => {
     // Stub implementation
   }, []);
 
-  const forwardMessage = useCallback(async (messageId: string, targetConversationId: string) => {
-    // Stub implementation
-    console.log('Forward message not implemented', messageId, targetConversationId);
+  const forwardMessage = useCallback(async (_messageId: string, _targetConversationId: string) => {
+    // Stub implementation - Forward message not implemented for ${messageId} to ${targetConversationId}
   }, []);
 
   const startVoiceRecording = useCallback(async () => {
